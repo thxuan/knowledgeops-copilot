@@ -1,0 +1,18 @@
+services:
+  vectors:
+    image: pgvector/pgvector:0.8.0-pg17
+    environment:
+      POSTGRES_DB: knowledgeops
+      POSTGRES_USER: knowledgeops
+      POSTGRES_PASSWORD: local-day5-only
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - vectors-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U knowledgeops -d knowledgeops"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+volumes:
+  vectors-data:

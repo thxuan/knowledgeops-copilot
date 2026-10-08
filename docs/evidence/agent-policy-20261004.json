@@ -1,0 +1,158 @@
+{
+  "mode": "scripted_policy_real_postgresql",
+  "passed": 30,
+  "total": 30,
+  "scenarios": [
+    {
+      "scenario_id": "A001",
+      "attempt": 1,
+      "passed": true
+    },
+    {
+      "scenario_id": "A001",
+      "attempt": 2,
+      "passed": true
+    },
+    {
+      "scenario_id": "A001",
+      "attempt": 3,
+      "passed": true
+    },
+    {
+      "scenario_id": "A002",
+      "attempt": 1,
+      "passed": true
+    },
+    {
+      "scenario_id": "A002",
+      "attempt": 2,
+      "passed": true
+    },
+    {
+      "scenario_id": "A002",
+      "attempt": 3,
+      "passed": true
+    },
+    {
+      "scenario_id": "A003",
+      "attempt": 1,
+      "passed": true
+    },
+    {
+      "scenario_id": "A003",
+      "attempt": 2,
+      "passed": true
+    },
+    {
+      "scenario_id": "A003",
+      "attempt": 3,
+      "passed": true
+    },
+    {
+      "scenario_id": "A004",
+      "attempt": 1,
+      "passed": true
+    },
+    {
+      "scenario_id": "A004",
+      "attempt": 2,
+      "passed": true
+    },
+    {
+      "scenario_id": "A004",
+      "attempt": 3,
+      "passed": true
+    },
+    {
+      "scenario_id": "A005",
+      "attempt": 1,
+      "passed": true
+    },
+    {
+      "scenario_id": "A005",
+      "attempt": 2,
+      "passed": true
+    },
+    {
+      "scenario_id": "A005",
+      "attempt": 3,
+      "passed": true
+    },
+    {
+      "scenario_id": "A006",
+      "attempt": 1,
+      "passed": true
+    },
+    {
+      "scenario_id": "A006",
+      "attempt": 2,
+      "passed": true
+    },
+    {
+      "scenario_id": "A006",
+      "attempt": 3,
+      "passed": true
+    },
+    {
+      "scenario_id": "A007",
+      "attempt": 1,
+      "passed": true
+    },
+    {
+      "scenario_id": "A007",
+      "attempt": 2,
+      "passed": true
+    },
+    {
+      "scenario_id": "A007",
+      "attempt": 3,
+      "passed": true
+    },
+    {
+      "scenario_id": "A008",
+      "attempt": 1,
+      "passed": true
+    },
+    {
+      "scenario_id": "A008",
+      "attempt": 2,
+      "passed": true
+    },
+    {
+      "scenario_id": "A008",
+      "attempt": 3,
+      "passed": true
+    },
+    {
+      "scenario_id": "A009",
+      "attempt": 1,
+      "passed": true
+    },
+    {
+      "scenario_id": "A009",
+      "attempt": 2,
+      "passed": true
+    },
+    {
+      "scenario_id": "A009",
+      "attempt": 3,
+      "passed": true
+    },
+    {
+      "scenario_id": "A010",
+      "attempt": 1,
+      "passed": true
+    },
+    {
+      "scenario_id": "A010",
+      "attempt": 2,
+      "passed": true
+    },
+    {
+      "scenario_id": "A010",
+      "attempt": 3,
+      "passed": true
+    }
+  ],
+  "scope": "Scripted policy with real PostgreSQL; not a real model competence benchmark."
+}

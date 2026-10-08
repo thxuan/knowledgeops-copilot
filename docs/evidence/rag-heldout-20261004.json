@@ -1,0 +1,44 @@
+{
+  "sample_count": 10,
+  "answerable_count": 8,
+  "unanswerable_count": 2,
+  "status_counts": {
+    "answered": 8,
+    "refused": 2,
+    "rejected": 0,
+    "error": 0
+  },
+  "mean_source_recall_at_k": 1.0,
+  "mrr_at_k": 1.0,
+  "mean_section_char_coverage_at_k": 0.9801324503311258,
+  "cross_document_all_sources_rate": 1.0,
+  "cross_document_count": 2,
+  "retrieval_metric_count": 8,
+  "retrieval_metric_denominator": "answerable samples with completed retrieval; errors separately counted",
+  "latency_sample_count": 10,
+  "unanswerable_refusal_rate": 1.0,
+  "answerable_false_refusal_rate": 0.0,
+  "citation_validity_rate": 1.0,
+  "citation_count": 12,
+  "filter_checked_hits": 50,
+  "filter_correctness_rate": 1.0,
+  "p50_ms": 4781.316,
+  "p95_ms": 13374.756,
+  "latency_scope": "sequential, retrieval plus generation and commit; not a load test",
+  "semantic_correctness": null,
+  "citation_support": null,
+  "faithfulness": null,
+  "semantic_status": "pending reviewed labels",
+  "generation_usage": {
+    "prompt_tokens": 13399,
+    "completion_tokens": 1832,
+    "estimated_cost": null,
+    "complete_usage_samples": 10
+  },
+  "currency": "unspecified",
+  "embedding_usage": {
+    "total_tokens": 160,
+    "estimated_cost": null,
+    "scope": "query embedding only; prior corpus indexing cost excluded"
+  }
+}

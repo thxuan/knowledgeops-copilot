@@ -1,0 +1,21 @@
+{
+  "mode": "Fake providers + real PostgreSQL + in-process FastAPI HTTP client",
+  "checks": [
+    "Agent calculator",
+    "Agent request idempotence",
+    "SELECT-only business tool",
+    "anonymous access rejected",
+    "approved write completes",
+    "citation read",
+    "cross-user evidence filtering",
+    "grounded answer and citations",
+    "health",
+    "hybrid retrieval",
+    "repeated approval creates one ticket",
+    "upload and asynchronous parsing",
+    "upload deduplication",
+    "write pauses for approval"
+  ],
+  "passed": 14,
+  "paid_model_calls": 0
+}

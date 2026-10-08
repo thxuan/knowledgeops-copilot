@@ -1,0 +1,34 @@
+name: Tests
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  postgres-regression:
+    runs-on: ubuntu-latest
+    env:
+      PIP_INDEX_URL: ${{ vars.PIP_INDEX_URL || 'https://pypi.org/simple' }}
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.0-pg17
+        env:
+          POSTGRES_DB: knowledgeops
+          POSTGRES_USER: knowledgeops
+          POSTGRES_PASSWORD: local-day5-only
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U knowledgeops -d knowledgeops"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.lock
+      - run: python -m pip check
+      - run: python scripts/demo.py smoke
+      - run: python scripts/demo.py test
+      - run: python docs/architecture/validate.py

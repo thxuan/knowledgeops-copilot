@@ -1,0 +1,1 @@
+"""KnowledgeOps Copilot application."""

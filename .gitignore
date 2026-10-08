@@ -1,0 +1,46 @@
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Python / tooling
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+.coverage
+htmlcov/
+.ruff_cache/
+
+# Runtime data, database copies, raw prompts and experiment snapshots
+data/
+*.db
+*.sqlite
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+*.dump
+*.log
+snapshot.json
+docs/experiments/
+bad-day3.txt
+
+# Preserved local learning records: current public docs live elsewhere
+docs/day*.md
+docs/day9-retrieval-profile.json
+docs/evaluation.md
+docs/decisions.md
+docs/failure-cases.md
+docs/architecture/preview/
+
+.DS_Store
+Thumbs.db
+
+docs/architecture.md
+docs/interview-oral*.md
