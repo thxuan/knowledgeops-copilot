@@ -45,7 +45,7 @@ class ChunkRepository:
             raise AppError("DOCUMENT_NOT_READY", "Parsing must succeed before chunking", 409)
         return dict(row)
 
-    def build(self, document_id: str, identity: Identity, config: ChunkConfig) -> dict:
+    def build(self, document_id: str, identity: Identity, config: ChunkConfig, *, publish=True) -> dict:
         with self.ingestion.connection() as db:
             document = self._document(db, document_id, identity)
         chunks = chunk_document(
@@ -66,10 +66,14 @@ class ChunkRepository:
             db.cursor().executemany("INSERT INTO chunks VALUES (%s, %s, %s, %s) ON CONFLICT DO NOTHING",
                            [(c.chunk_id, set_id, c.ordinal, json.dumps(asdict(c), ensure_ascii=False))
                             for c in chunks])
-            db.execute("""INSERT INTO document_chunk_heads VALUES (%s, %s)
-                       ON CONFLICT(document_id) DO UPDATE SET chunk_set_id = excluded.chunk_set_id""",
-                       (document_id, set_id))
-            return self._read_set(db, set_id)
+            if publish:
+                db.execute("""INSERT INTO document_chunk_heads VALUES (%s, %s)
+                           ON CONFLICT(document_id) DO UPDATE SET chunk_set_id = excluded.chunk_set_id""",
+                           (document_id, set_id))
+            result = self._read_set(db, set_id)
+            if not publish:
+                result['document_revision'] = document['revision']
+            return result
 
     @staticmethod
     def _read_set(db, set_id: str) -> dict:

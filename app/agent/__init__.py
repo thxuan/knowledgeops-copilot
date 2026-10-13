@@ -1,1 +1,1 @@
-"""Fake-model tool loop."""
+"""Persistent, permission-aware tool execution."""

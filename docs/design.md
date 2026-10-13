@@ -35,7 +35,7 @@
 | exact / HNSW | 精确检索用于基线；近似索引取舍速度与召回，小数据结果不代表大规模性能 |
 | 单 Agent、自写循环 | 工具数量和任务范围有限，可直接控制协议、状态、预算、审批；复杂任务扩展需要新评测依据 |
 | PostgreSQL + pgvector | 文档、权限、会话、向量与业务状态集中管理；仍需明确事务边界和数据库角色 |
-| Fake + compatible 适配器 | Fake 保证便宜可复现的控制流验证；真实模型适配器验证实际接口，不能用 Fake 分数推断真实质量 |
+| 真实适配器 + 测试替身 | 运行时使用真实模型适配器；替身仅存在于 tests 中验证控制流，不能推断真实质量 |
 
 ## 安全边界
 
@@ -43,4 +43,4 @@
 
 当前身份头只是本地测试映射，生产认证、部署密钥管理、监控告警和备份恢复仍需完善。不要把演示直接作为面向公网的生产服务。
 
-详细代码入口见 [交互式架构导航](architecture/index.html)，ID、键和约束见 [字段与机制整理](architecture/identifiers-and-constraints.md)。
+详细代码入口见 [交互式架构导航](../../knowledgeops-architecture/index.html)，ID、键和约束见 [字段与机制整理](../../knowledgeops-architecture/learning-records/copilot/docs/architecture/identifiers-and-constraints.md)。

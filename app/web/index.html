@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light"><meta name="description" content="KnowledgeOps Copilot 本地知识问答、受控执行与检索实验工作台">
+  <title>KnowledgeOps · 会话与评测</title>
+  <link rel="icon" type="image/svg+xml" href="/workbench/assets/favicon.svg">
+  <link rel="stylesheet" href="/workbench/assets/workbench.css">
+  <script type="module" src="/workbench/assets/workbench.js"></script>
+</head>
+<body>
+<a class="skip-link" href="#message">跳到提问</a>
+<header class="topbar">
+  <a class="brand" href="/" aria-label="KnowledgeOps 工作台首页"><span>KnowledgeOps</span></a>
+  <nav class="workspace-nav" aria-label="工作区"><a href="/settings">连接设置</a><a href="/knowledge">知识库</a><a href="/" aria-current="page">会话与评测</a></nav>
+  <div class="top-actions"><button id="model-settings" class="secondary-button">模型设置</button><span id="connection" class="connection">连接中</span><a class="quiet-link" href="/docs" target="_blank" rel="noopener">API 文档</a></div>
+</header>
+<main>
+  <section class="heading-row"><div><h1>会话与评测</h1></div><div class="identity-group"><label for="identity">演示身份</label><select id="identity" aria-label="演示身份"><option value="u_engineer_001">工程师 · engineering-cn</option><option value="u_employee_001">普通员工 · all-employees</option><option value="u_support_001">IT 支持 · it-support</option></select></div></section>
+  <div class="view-toolbar"><div class="view-switch" role="group" aria-label="工作视图"><button id="chat-view-button" aria-pressed="true" aria-controls="chat-view">会话</button><button id="evaluation-view-button" aria-pressed="false" aria-controls="evaluation-view">评测与记录</button></div><div class="actions"><button id="toggle-parameters" class="text-button" aria-haspopup="dialog" aria-controls="parameters-dialog">运行参数</button><button id="open-inspector" class="text-button" aria-haspopup="dialog" aria-controls="inspector-dialog">运行详情</button></div></div>
+  <div id="notice" class="notice" role="status" hidden></div>
+  <div class="workspace" id="chat-view">
+
+    <section class="conversation panel" aria-labelledby="task-title">
+      <div class="panel-heading"><div><h2 id="task-title">会话</h2></div><button id="new-conversation" class="text-button">新会话</button></div>
+      <div class="run-context"><span id="model-badge" class="badge">读取配置</span><span id="pipeline-badge">语义 ＋ BM25 → RRF → 证据</span></div>
+      <div id="chat-log" class="chat-log" aria-live="polite">
+        <div id="welcome" class="welcome"><h3>新会话</h3><p>向知识库提问，或让 Agent 查询业务、创建工单。</p><div class="suggestions"><button data-prompt="TL-403 设备合规刷新需要多久？">TL-403 合规刷新需要多久？</button><button data-prompt="工程师如何申请代码仓库权限？">如何申请代码仓库权限？</button></div><p class="welcome-footnote">所有样例公司、政策和业务数据均为虚构。</p></div>
+      </div>
+
+      <form id="composer" class="composer"><label class="sr-only" for="message">问题或任务</label><textarea id="message" rows="3" maxlength="4000" placeholder="提问，或继续交代一个任务…" required></textarea><div class="composer-actions"><label class="intent-label" for="intent"><select id="intent" aria-label="会话模式"><option value="auto">自动 · 问答与任务</option><option value="question">仅知识问答</option></select></label><small id="composer-note">Enter 发送 · Shift + Enter 换行</small><button id="send" class="primary-button" type="submit" disabled>发送 <span aria-hidden="true">↑</span></button></div></form>
+    </section>
+
+  </div>
+  <section id="evaluation-view" hidden aria-label="评测与运行记录"><div class="evaluation-setup"><div class="evaluation-heading"><h2>测试集</h2><button id="welcome-import" class="secondary-button">导入 JSONL</button></div><p class="field-help">导入题目和来源标注后批量运行。答案正确性需人工评审。</p>      <div id="question-picker" class="question-picker"><label for="question">测试集</label><select id="question"><option value="">自由提问 · 不计算质量指标</option><option value="import">导入测试集（JSONL）…</option></select><section id="dataset-panel" class="dataset-panel" hidden><div class="dataset-heading"><strong id="dataset-name"></strong><button id="replace-dataset" class="text-button" type="button">更换文件</button></div><p id="dataset-summary" class="field-help"></p><label class="field" for="dataset-split">测试范围<select id="dataset-split"><option value="">全部题目</option></select></label><p id="dataset-progress" class="field-help" role="status">准备就绪，点击开始评测。</p><button id="start-dataset" class="primary-button" type="button">开始评测</button></section></div>
+</div><section class="experiments panel" aria-labelledby="experiments-title"><div class="experiment-heading"><div><h2 id="experiments-title">运行记录 <span id="experiment-count" class="count">0</span></h2></div><div class="actions"><button id="rerun" class="secondary-button" disabled>用当前参数重跑</button><button id="compare" class="secondary-button" disabled>比较 A / B</button><button id="batch" class="secondary-button" hidden disabled>运行当前测试集</button><button id="resume-batch" class="secondary-button" hidden>继续中断批次</button><button id="clear-cache" class="text-button">清空本地记录</button><span id="cache-status" class="field-help" role="status"></span><button id="export" class="text-button" disabled>导出 JSON ↓</button></div></div><p id="experiment-scope" class="field-help">记录自动保存在本机浏览器，按身份、数据库与集合隔离。A/B 用相同题目、身份与无历史条件；质量评测依据导入测试集的有效标注。</p><div id="batch-results" class="batch-results"></div><div class="table-wrap"><table><caption class="sr-only">当前身份的实验记录</caption><thead><tr><th>运行 / 题目</th><th>检索配置</th><th>证据 / 文档</th><th>来源召回</th><th>跨文档来源完整</th><th>总耗时</th><th>答案正确</th><th>对比</th></tr></thead><tbody id="experiment-rows"><tr><td colspan="8" class="table-empty">每次运行都保存实际参数与结果，便于复盘。</td></tr></tbody></table></div></section>
+  </section>
+</main>
+<dialog id="parameters-dialog" class="side-dialog" aria-labelledby="params-title">    <aside id="parameters-panel" class="parameters panel" aria-labelledby="params-title">
+      <div class="panel-heading"><div><h2 id="params-title">运行参数</h2></div><button id="reset-config" class="icon-button" title="恢复服务端默认参数" aria-label="恢复默认参数">↺</button><button data-close="parameters-dialog" class="icon-button" aria-label="关闭运行参数">×</button></div>
+      <p id="parameter-scope" class="scope-note">问答检索与生成参数</p>
+      <div class="preset-area"><label for="preset">运行预设 <span id="preset-status">均衡检索</span></label><select id="preset"><option value="balanced">均衡检索</option><option value="fast">快速问答</option><option value="cross">跨文档分析</option><option value="custom" disabled>自定义</option></select><p>从预设开始，再调整每个阶段。</p></div>
+      <div id="pipeline-map" class="pipeline-map" aria-label="检索流程"></div>
+      <form id="parameters-form">
+        <details class="parameter-group" open><summary><span><strong>召回与融合</strong><small>选择检索路径与候选数量</small></span></summary><fieldset id="retrieval-fields"><legend class="sr-only">召回与融合</legend>
+          <div class="switch-row"><label for="semantic">语义检索 <small>向量相似度</small></label><input id="semantic" type="checkbox" class="switch" checked></div>
+          <label class="number-row" for="semantic-k">语义候选数 <span><input id="semantic-k" type="number" min="1" max="50" value="20" required><small>切块</small></span></label>
+          <div class="switch-row"><label for="keyword">关键词检索 <small>BM25</small></label><input id="keyword" type="checkbox" class="switch" checked></div>
+          <label class="number-row" for="keyword-k">BM25 候选数 <span><input id="keyword-k" type="number" min="1" max="50" value="20" required><small>切块</small></span></label>
+          <div class="switch-row"><label for="rrf">排名融合 <small>RRF</small></label><input id="rrf" type="checkbox" class="switch" checked></div>
+          <label class="number-row" for="fusion-k">融合保留数 <span><input id="fusion-k" type="number" min="1" max="50" value="20" required><small>切块</small></span></label>
+          <details class="advanced"><summary>融合高级设置</summary><label class="number-row" for="rrf-constant">RRF 排名常数 <span><input id="rrf-constant" type="number" min="1" max="200" value="60" required></span></label>
+          <p class="field-help">排名常数控制贡献衰减，不是候选数量。两路开启时需启用融合。</p></details>
+          <div class="switch-row"><label for="rerank">候选重排 <small id="rerank-label">未配置</small></label><input id="rerank" type="checkbox" class="switch" disabled></div>
+        </fieldset></details>
+        <details class="parameter-group"><summary><span><strong>证据选择</strong><small>决定哪些内容进入模型</small></span></summary><fieldset id="evidence-fields"><legend class="sr-only">证据选择</legend>
+          <label class="field" for="profile">选择策略<select id="profile"><option value="ranked">按相关性排名 · ranked</option><option value="coverage">覆盖选择 · coverage</option><option value="multi_query">多查询＋覆盖 · multi_query</option></select></label>
+          <label class="number-row" for="evidence-k">最终证据上限 <span><input id="evidence-k" type="number" min="1" max="20" value="8" required><small>切块</small></span></label>
+          <p class="field-help">按 token 预算再裁剪；切块数不等于文档数，也不等于实际引用数。</p>
+          <details><summary>向量检索高级参数</summary><label class="field" for="search-mode">搜索方式<select id="search-mode"><option value="exact">精确检索 · exact</option><option value="hnsw">近似检索 · HNSW</option></select></label><label class="number-row" for="ef-search">HNSW ef_search <input id="ef-search" type="number" min="1" max="1000" value="40" required></label></details>
+        </fieldset></details>
+        <details class="parameter-group"><summary><span><strong>回答生成</strong><small>调整采样与输出预算</small></span></summary><fieldset id="generation-fields"><legend class="sr-only">回答生成</legend>
+          <label class="field" for="model">生成模型<select id="model"><option value="configured">加载服务端模型…</option></select></label>
+          <p id="sampling-note" class="field-help">读取模型能力中。</p>
+          <label class="number-row" for="temperature">Temperature <input id="temperature" type="number" min="0" max="1.99" step="0.1" value="0" required></label>
+          <label class="number-row" for="top-p">Top-P <input id="top-p" type="number" min="0.01" max="1" step="0.01" placeholder="默认"></label>
+          <p class="field-help">Top-P 是累计概率阈值，非检索条数。模型采样 Top-K 当前适配器未接入。</p>
+          <label class="number-row" for="output-limit">最大输出 tokens <input id="output-limit" type="number" min="128" max="8192" step="128" value="2048" required></label>
+          <div class="switch-row"><label for="coverage-review">生成覆盖复查<small>会增加一次模型调用</small></label><input id="coverage-review" type="checkbox" class="switch" checked></div>
+        </fieldset></details>
+      </form>
+      <p id="config-error" class="error-text" role="alert" hidden></p>
+      <p class="sidebar-footer">参数随请求生效 · 索引配置保持服务端管理</p>
+    </aside></dialog>
+<dialog id="inspector-dialog" class="side-dialog inspector-dialog" aria-labelledby="inspect-title">    <aside class="inspector panel" aria-labelledby="inspect-title">
+      <div class="panel-heading"><div><h2 id="inspect-title">证据与指标</h2></div><span id="run-number" class="mono muted">—</span><button data-close="inspector-dialog" class="icon-button" aria-label="关闭运行详情">×</button></div>
+      <div id="inspection-answer" class="inspection-answer" hidden></div><div class="inspector-tabs" role="group" aria-label="观察内容"><button id="metrics-tab" aria-pressed="true" class="active">运行指标</button><button id="evidence-tab" aria-pressed="false">检索证据</button></div>
+      <div id="metrics-panel"><div class="empty-state">运行一次问答后，查看耗时、证据覆盖与 token 用量。<small>自由问题的召回率与正确率保持“未评测”。</small></div></div>
+      <div id="evidence-panel" hidden><label class="field" for="evidence-stage">观察阶段<select id="evidence-stage"><option value="evidence">进入模型的证据</option><option value="final">最终检索结果</option><option value="vector">语义候选</option><option value="keyword">BM25 候选</option><option value="fusion">RRF 融合</option><option value="rerank">重排结果</option><option value="selection_pool">多查询选择池</option></select></label><div id="evidence-list" class="empty-state">还没有检索结果。</div></div>
+    </aside></dialog>
+<dialog id="source-dialog"><div class="dialog-heading"><div><h2 id="source-title">引用原文</h2></div><button data-close="source-dialog" class="icon-button" aria-label="关闭引用原文">×</button></div><p id="source-meta" class="field-help"></p><pre id="source-text" class="source-text"></pre></dialog>
+<dialog id="compare-dialog" class="wide-dialog"><div class="dialog-heading"><div><h2>A / B 实验对比</h2></div><button data-close="compare-dialog" class="icon-button" aria-label="关闭实验对比">×</button></div><div id="comparison-content"></div></dialog>
+<dialog id="review-dialog"><form id="review-form"><div class="dialog-heading"><div><h2>人工评审</h2></div><button data-close="review-dialog" type="button" class="icon-button" aria-label="关闭人工评审">×</button></div><p class="field-help">标注绑定该次输出。自动来源校验不能证明语义正确。</p><div id="review-reference"></div><label class="field" for="correctness">答案正确性<select id="correctness"><option value="">待评审</option><option value="pass">通过</option><option value="fail">未通过</option></select></label><label class="field" for="citation-support">引用是否支持结论<select id="citation-support"><option value="">待评审</option><option value="pass">通过</option><option value="fail">未通过</option></select></label><label class="field" for="reviewer">评审人<input id="reviewer" maxlength="80" required placeholder="填写姓名或代号"></label><label class="field" for="review-notes">评审依据<textarea id="review-notes" rows="3" maxlength="1000" required placeholder="说明哪些要点正确，或哪条引用未支持结论"></textarea></label><button class="primary-button" type="submit">保存评审</button></form></dialog>
+<dialog id="export-dialog" class="wide-dialog"><div class="dialog-heading"><div><h2>导出实验记录</h2></div><button data-close="export-dialog" class="icon-button" aria-label="关闭导出记录">×</button></div><p id="export-status" class="field-help" role="status">记录包含运行参数、结果与人工评审。</p><label class="field" for="export-json">JSON 内容<textarea id="export-json" class="config-preview" readonly rows="12"></textarea></label><div class="actions"><button id="download-json" class="primary-button">下载 JSON ↓</button><button id="copy-json" class="secondary-button">复制 JSON</button></div></dialog>
+<dialog id="model-dialog"><form id="model-form"><div class="dialog-heading"><div><h2>连接你的模型</h2></div><button type="button" data-close="model-dialog" class="icon-button" aria-label="关闭模型设置">×</button></div><p class="field-help">使用项目已有的 OpenAI 兼容接口。保存后用于问答和意图判断；填写单价后同时启用 Agent。</p><label class="field" for="base-url">Base URL<input id="base-url" type="url" required placeholder="https://your-provider.example/v1" autocomplete="off"></label><label class="field" for="model-id">模型名称<input id="model-id" required maxlength="120" placeholder="供应商提供的模型 ID" autocomplete="off"></label><label class="field" for="api-key">API Key<input id="api-key" type="password" autocomplete="new-password" placeholder="输入密钥"></label><div class="pricing-grid"><label class="field" for="input-price">输入单价 / 百万 tokens<input id="input-price" type="number" min="0" step="any" placeholder="未设置"></label><label class="field" for="output-price">输出单价 / 百万 tokens<input id="output-price" type="number" min="0" step="any" placeholder="未设置"></label></div><p class="field-help">两项单价使用同一币种，Agent 依照现有预算限制执行。密钥仅保留在当前服务进程内，重启后需重新配置或使用环境变量。</p><p id="model-status" role="status" class="field-help"></p><div class="actions"><button id="test-model" type="button" class="secondary-button">测试连接</button><button id="save-model" type="submit" class="primary-button">保存并启用</button></div></form></dialog>
+<dialog id="dataset-dialog"><form id="dataset-form"><div class="dialog-heading"><div><h2>导入测试集</h2></div><button data-close="dataset-dialog" class="icon-button" type="button" aria-label="关闭测试集导入">×</button></div><p class="field-help">每行一道 JSON 题目，1–200 题，单文件不超过 2 MB。仅导入和校验，不会调用模型。</p><label class="field" for="dataset-file">题目文件 · JSONL<input id="dataset-file" type="file" accept=".jsonl,application/x-ndjson" required></label><label class="field" for="spans-file">章节坐标文件 · 可选<input id="spans-file" type="file" accept=".jsonl,application/x-ndjson"></label><details><summary>查看格式与指标要求</summary><pre class="config-preview">{"question_id":"Q001","question":"VPN 如何配置？"}</pre><p class="field-help">只有 question 也可以导入，缺失的题号自动生成。expected_sources 使用 document_id 或 source，并填写 version；来源需已入库且当前身份可访问。expected_answer_points 用于人工评审，source_spans 用于章节精确率和覆盖率。支持现有 questions.jsonl 与 day4-source-spans.jsonl。</p><p class="field-help">没有来源标注不计算召回；没有章节坐标不计算章节精确率；答案正确性始终待评审。自由模式可继续使用 Agent，批量评测仅运行知识问答。</p></details><p id="dataset-import-status" class="field-help" role="status"></p><div class="actions"><button id="example-dataset" class="secondary-button" type="button">下载开发集示例</button><button id="confirm-dataset" class="primary-button" type="submit">校验并导入</button></div></form></dialog>
+</body>
+</html>

@@ -1,6 +1,8 @@
 """Regression checks for complete held-out labels before any paid evaluation."""
 import asyncio
 from copy import deepcopy
+from app.core.embedding import EmbeddingSettings
+from app.generation.provider import GenerationSettings
 import json
 from pathlib import Path
 import pytest
@@ -104,7 +106,7 @@ def test_fatal_run_error_marks_manifest_failed(tmp_path, monkeypatch):
         (tmp_path/'eval_data'/name).write_text(''.join(json.dumps(r)+'\n' for r in data),encoding='utf-8')
     monkeypatch.setattr(evaluator,'ROOT',tmp_path)
     monkeypatch.setattr(evaluator,'load_corpus',lambda:corpus)
-    monkeypatch.setattr(evaluator.Settings,'from_env',lambda:Settings(vector_database_url='fixture'))
+    monkeypatch.setattr(evaluator.Settings,'from_env',lambda:Settings(vector_database_url='fixture', embedding=EmbeddingSettings(provider='compatible', api_key='test-only'), generation=GenerationSettings(provider='compatible', api_key='test-only')))
     async def abort(*args):
         raise ValueError('Evaluation fixture failure')
     monkeypatch.setattr(evaluator,'run_evaluation',abort)

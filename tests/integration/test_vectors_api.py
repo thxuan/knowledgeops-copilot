@@ -1,3 +1,4 @@
+from tests.doubles import LexicalRerankDouble
 from conftest import pg_dsn
 import asyncio
 from dataclasses import replace
@@ -324,12 +325,12 @@ def test_chat_real_retrieval_generation_and_citation(vector_app):
 @pytest.mark.parametrize('strategy', ['vector', 'hybrid', 'hybrid_rerank'])
 def test_day9_modes_authorization_filters_versions_and_citations(vector_app, strategy):
     from app.retrieval.pipeline import RetrievalSettings
-    from app.retrieval.rerank import RerankSettings, FakeRerankClient
+    from app.retrieval.rerank import RerankSettings
     app, client = vector_app
     service = app.state.retrieval_service
     service.settings = RetrievalSettings(strategy=strategy, candidate_k=10,
-                                         rerank=RerankSettings(provider='fake'))
-    service.reranker = FakeRerankClient()
+                                         rerank=RerankSettings(provider='compatible', api_key='test-only', endpoint='https://rerank.test/v1/reranks', cost_per_million_tokens=0))
+    service.reranker = LexicalRerankDouble()
     doc, _ = upload(app, client)
     assert client.post(f'/documents/{doc}/index', headers=HEADERS).status_code == 200
     result = retrieve(client, strategy=strategy, candidate_k=10, top_k=3)
@@ -394,3 +395,30 @@ def test_pgvector_extension_shared_by_isolated_schemas():
         row = db.execute("SELECT n.nspname FROM pg_extension e JOIN pg_namespace n ON n.oid=e.extnamespace WHERE e.extname='vector'").fetchone()
         assert row["nspname"] == "public"
         assert db.execute("SELECT vector_dims('[1,2]'::vector) AS dims").fetchone()["dims"] == 2
+
+
+@pytest.mark.parametrize("profile", ["coverage", "multi_query"])
+def test_coverage_profiles_preserve_api_citations_filters_and_chat_context(vector_app, profile):
+    app, client = vector_app
+    doc, _ = upload(app, client)
+    assert client.post(f"/documents/{doc}/index", headers=HEADERS).status_code == 200
+    query = "TL-403 设备修复后等待多久？设备安全检查能否关闭？"
+    body = {"query": query, "top_k": 2, "candidate_k": 10,
+            "retrieval_profile": profile, "filters": {"document_ids": [doc]}}
+    response = client.post("/retrieve", headers=HEADERS, json=body)
+    assert response.status_code == 200, response.text
+    result = response.json()
+    assert result["diagnostics"]["retrieval_profile"] == profile
+    assert result["hits"] and {h["document_id"] for h in result["hits"]} == {doc}
+    for h in result["hits"]:
+        assert client.get(h["citation"]["url"], headers=HEADERS).status_code == 200
+    chat = client.post("/chat", headers=HEADERS, json={"message": query, "top_k": 2,
+        "retrieval_profile": profile, "filters": {"document_ids": [doc]}})
+    assert chat.status_code == 200, chat.text
+    context = chat.json()["context"]
+    assert context["retrieval_profile"] == profile
+    assert context["evidence_count"] <= 2
+    assert context["retrieval_diagnostics"]["queries"][0] == query
+    denied = client.post("/retrieve", headers=EMPLOYEE, json=body).json()
+    assert denied["hits"] == denied["diagnostics"]["candidates"] == []
+    assert denied["diagnostics"]["planning"]["model_calls"] == 0

@@ -76,8 +76,8 @@ class AgentRepository:
             (", lease_token=NULL,lease_until=0" if release else "") + " WHERE run_id=%s",
             (Jsonb(state), state["run_id"]))
 
-    def create(self, identity, message, request_key, trace_id):
-        digest = hashlib.sha256(message.encode()).hexdigest()
+    def create(self, identity, message, request_key, trace_id, *, history=None, conversation_id=None):
+        digest = hashlib.sha256((message if conversation_id is None else dump([message, conversation_id])).encode()).hexdigest()
         with self.connection() as db:
             db.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", (identity.tenant_id + identity.user_id,))
             row = db.execute("SELECT * FROM ko_agent_runs WHERE tenant_id=%s AND user_id=%s AND request_key=%s",
@@ -93,9 +93,12 @@ class AgentRepository:
             run_id = uuid4().hex
             state = {"run_id": run_id, "trace_id": trace_id, "status": "running", "phase": "queued",
                 "outcome": None, "answer": None, "messages": [{"role": "system", "content": SYSTEM},
+                *[{"role": h["role"], "content": redact(h["content"])} for h in (history or [])],
                 {"role": "user", "content": redact(message)}], "steps": 0, "elapsed_seconds": 0,
                 "reserved_tokens": 0, "reserved_cost": 0.0, "estimated_model_cost": 0.0, "actual_model_tokens": 0, "usage": [], "trace": [], "events": [],
                 "pending": None, "seen": [], "policy": self.settings.policy, "model": self.settings.model_id, "created_at": time.time()}
+            if conversation_id:
+                state["conversation_id"] = conversation_id
             event(state, "accepted", trace_id=trace_id)
             db.execute("INSERT INTO ko_agent_runs(run_id,tenant_id,user_id,request_key,request_hash,state,created_at) VALUES (%s,%s,%s,%s,%s,%s,%s)",
                 (run_id, identity.tenant_id, identity.user_id, request_key, digest, Jsonb(state), time.time()))

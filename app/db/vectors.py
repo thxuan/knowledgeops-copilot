@@ -1,5 +1,5 @@
 """PostgreSQL snapshots, atomic publication and isolated cosine vector spaces."""
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 import hashlib
 import json
 import psycopg
@@ -78,10 +78,10 @@ class VectorRepository:
                              (self.settings.collection, document_id)).fetchone()
             return bool(row and row["chunk_set_id"] == set_id and row["chunk_count"] == count)
 
-    def publish(self, snapshot, tenant_id, vectors):
+    def publish(self, snapshot, tenant_id, vectors, *, transaction=None):
         validate_result(EmbeddingResult(self.settings.model_id, vectors), self.settings, snapshot["count"])
         chunks = snapshot["chunks"]
-        with self.connection() as db:
+        with (nullcontext(transaction) if transaction is not None else self.connection()) as db:
             self._check(db)
             db.execute("""INSERT INTO ko_documents VALUES (%s,%s,%s,%s)
                 ON CONFLICT(document_id) DO UPDATE SET source=excluded.source, version=excluded.version

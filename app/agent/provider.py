@@ -2,7 +2,6 @@
 from uuid import uuid4
 import httpx
 from app.agent.contracts import dump
-from app.agent.loop import CALC_PATTERN
 from app.core.errors import AppError
 
 class Retryable(Exception):
@@ -58,22 +57,7 @@ def tool_message(name, arguments):
     return {"role": "assistant", "content": None, "tool_calls": [{"id": uuid4().hex,
         "type": "function", "function": {"name": name, "arguments": dump(arguments)}}]}
 
-class FakeAgentModel:
-    """Small deterministic demo; scripted evaluation is separate from model quality."""
+
+class UnconfiguredAgentModel:
     async def complete(self, messages, tools):
-        if messages[-1]["role"] == "tool":
-            message = {"role": "assistant", "content": dump({"status": "completed",
-                       "answer": "工具结果（离线演示）：" + messages[-1]["content"]})}
-        else:
-            question = messages[-1]["content"]
-            match = CALC_PATTERN.fullmatch(question)
-            if match:
-                message = tool_message("calculator", {"left": float(match[1]), "operator": match[2], "right": float(match[3])})
-            elif "创建工单" in question:
-                message = tool_message("create_ticket", {"title": "本地模拟支持请求", "description": question[:1000]})
-            elif "设备" in question:
-                message = tool_message("query_business_data", {"query": "device_status"})
-            else:
-                message = {"role": "assistant", "content": dump({"status": "needs_clarification",
-                    "answer": "请补充系统、具体问题和处理目标。离线演示支持：计算 2 + 3、查询设备、创建工单。"})}
-        return {"message": message, "usage": {}, "model": "fake-agent-v1"}
+        raise AppError('AGENT_MODEL_NOT_CONFIGURED', '请配置真实 Agent 模型和输入、输出单价。', 422)

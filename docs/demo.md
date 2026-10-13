@@ -1,6 +1,6 @@
 # 五分钟 API 演示
 
-先按 README 初始化并启动 Fake 演示，打开 `http://127.0.0.1:8000/docs`。各业务请求填写请求头 `X-Local-User-Id: u_engineer_001`。接口返回的 ID 每次环境可能不同，以下使用实际响应值，不需要手工访问数据库。
+先按 README 配置真实模型、上传样例文档并构建索引，然后启动应用，打开 `http://127.0.0.1:8000/docs`。各业务请求填写请求头 `X-Local-User-Id: u_engineer_001`。接口返回的 ID 每次环境可能不同，以下使用实际响应值，不需要手工访问数据库。
 
 ## 1. 查证据，再问答
 
@@ -16,7 +16,7 @@
 {"message":"TL-403 设备合规刷新需要多久？","top_k":5}
 ```
 
-展示 answer、claims、citations 和 conversation_id；用 `GET /citations/{chunk_id}?chunk_set_id=...` 读取对应证据。Fake 使用词匹配和原文抽取，具体是否回答取决于证据，不应把预期自然语言句子作为固定结果。
+展示 answer、claims、citations 和 conversation_id；用 `GET /citations/{chunk_id}?chunk_set_id=...` 读取对应证据。真实模型生成回答，具体是否回答取决于授权证据，不应把预期自然语言句子作为固定结果。
 
 ## 2. 看完整上传流程
 
@@ -26,7 +26,7 @@
 2. `POST /documents/{document_id}/index`。
 3. `POST /retrieve`，filters.document_ids 只填该文档 ID。
 
-再次上传相同字节文件，应返回同一 document_id/task_id 和 duplicate=true。不同用户重复上传不能自动取得权限。这个操作会增加 demo 数据；如要运行严格的 14 份文档评测，使用单独 --schema 初始化另一套样例。
+再次上传相同字节文件，应返回同一 document_id/task_id 和 duplicate=true。不同用户重复上传不能自动取得权限。这个操作会增加 demo 数据；如要运行严格的 14 份文档评测，使用独立数据库 schema 准备另一套样例。
 
 ## 3. Agent 调用只读工具
 
@@ -60,4 +60,4 @@
 
 `GET /agent/{run_id}/events?after=0` 是 SSE（Server-Sent Events，服务器发送事件）。客户端可以带 Last-Event-ID 继续读取历史事件。它回放任务状态和已校验的答案文本，不等于模型 Token 流式输出。
 
-如果只想确认演示流程能跑通，执行 `python scripts/demo.py smoke`：它生成自己的临时 schema 并完成以上核心检查，不改变当前 demo 数据。
+工程回归使用 `python scripts/run_tests.py`，它使用独立临时 schema，不调用付费模型。真实模型效果通过工作台导入标注测试集进行评测。

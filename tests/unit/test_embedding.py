@@ -1,24 +1,25 @@
+from tests.doubles import HashEmbeddingDouble
 import asyncio
 from dataclasses import replace
 import math
 from types import SimpleNamespace
 import pytest
 from app.core.embedding import (EmbeddingSettings, EmbeddingResult, EmbeddingError,
-    EmbeddingTransientError, FakeEmbeddingClient, CompatibleEmbeddingClient, validate_result)
+    EmbeddingTransientError, CompatibleEmbeddingClient, validate_result)
 from app.core.errors import AppError
 from app.retrieval.service import VectorService
 
-@pytest.mark.parametrize("result", [EmbeddingResult("wrong", [[1,0]]), EmbeddingResult("fake-hash-v1", [[1]]),
-    EmbeddingResult("fake-hash-v1", [[0,0]]), EmbeddingResult("fake-hash-v1", [[math.nan,1]]),
-    EmbeddingResult("fake-hash-v1", [[True,1]]), EmbeddingResult("fake-hash-v1", []),
-    EmbeddingResult("fake-hash-v1", [[1,0]], -1)])
+@pytest.mark.parametrize("result", [EmbeddingResult("wrong", [[1,0]]), EmbeddingResult("text-embedding-v4", [[1]]),
+    EmbeddingResult("text-embedding-v4", [[0,0]]), EmbeddingResult("text-embedding-v4", [[math.nan,1]]),
+    EmbeddingResult("text-embedding-v4", [[True,1]]), EmbeddingResult("text-embedding-v4", []),
+    EmbeddingResult("text-embedding-v4", [[1,0]], -1)])
 def test_invalid_vectors(result):
     with pytest.raises(EmbeddingError):
         validate_result(result, EmbeddingSettings(dimensions=2), 1)
 
 def test_fake_stable_normalized_batch():
     settings = EmbeddingSettings()
-    client = FakeEmbeddingClient(settings)
+    client = HashEmbeddingDouble(settings)
     result = asyncio.run(client.embed(["设备合规 TL-403", "备用码"]))
     validate_result(result, settings, 2)
     assert result == asyncio.run(client.embed(["设备合规 TL-403", "备用码"]))
@@ -47,7 +48,7 @@ class FlakyClient:
                 return EmbeddingResult("wrong", [[1,0]] * len(texts))
             if self.calls == 1:
                 raise EmbeddingTransientError("test")
-            return await FakeEmbeddingClient(self.settings).embed(texts)
+            return await HashEmbeddingDouble(self.settings).embed(texts)
         finally:
             self.active -= 1
 
@@ -61,7 +62,7 @@ def test_retry_and_failure_logging():
     assert [e["status"] for e in repo.events] == ["failed", "succeeded"]
     assert [e["attempt"] for e in repo.events] == [1, 2]
     assert repo.events[0]["total_tokens"] is None
-    assert repo.events[1]["estimated_cost"] == 0
+    assert repo.events[1]["estimated_cost"] is None
 
 @pytest.mark.parametrize("invalid,hang,code,calls", [(True,False,"EMBEDDING_INVALID_RESPONSE",1),
     (False,True,"EMBEDDING_TEMPORARY_FAILURE",2)])

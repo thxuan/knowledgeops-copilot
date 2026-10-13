@@ -47,21 +47,10 @@ class TaskResponse(BaseModel):
     events: list[TaskEventResponse]
 
 
-class AgentDemoRequest(BaseModel):
-    message: str = Field(min_length=1, max_length=4096)
-
-
 class ToolCallResponse(BaseModel):
     call_id: str
     name: str
     result: str
-
-
-class AgentDemoResponse(BaseModel):
-    answer: str
-    model_provider: str
-    tool_calls: list[ToolCallResponse]
-
 
 
 class ChunkBuildRequest(BaseModel):
@@ -168,6 +157,7 @@ class RetrievalFilters(BaseModel):
 
 
 class RetrievalRequest(VectorSearchRequest):
+    retrieval_profile: Literal["ranked", "coverage", "multi_query"] = "ranked"
     model_config = {"extra": "forbid"}
     filters: RetrievalFilters = Field(default_factory=RetrievalFilters)
     strategy: Literal["vector", "hybrid", "hybrid_rerank"] | None = None
@@ -227,7 +217,7 @@ class RetrievalResponse(BaseModel):
     model_id: str
     dimensions: int
     mode: Literal["exact", "hnsw"]
-    score_type: Literal["cosine_similarity", "rrf", "rerank_relevance", "fake_bm25"]
+    score_type: Literal["cosine_similarity", "rrf", "rerank_relevance", "bm25"]
     run_id: str
     duration_ms: float
     hits: list[RetrievalHitResponse]
@@ -251,10 +241,11 @@ class DocumentUpdateResponse(BaseModel):
     index_required: bool
 
 class ChatRequest(BaseModel):
+    retrieval_profile: Literal["ranked", "coverage", "multi_query"] = "ranked"
     model_config = {"extra": "forbid"}
     message: str = Field(min_length=1, max_length=4096)
     conversation_id: str | None = Field(default=None, min_length=1, max_length=64)
-    top_k: int = Field(default=5, ge=1, le=20, strict=True)
+    top_k: int = Field(default=20, ge=1, le=20, strict=True)
     filters: RetrievalFilters = Field(default_factory=RetrievalFilters)
 
     @model_validator(mode="after")
@@ -276,6 +267,16 @@ class ChatContextResponse(BaseModel):
     retrieval_hit_count: int
     generation_attempts: int
     retrieval_query: str
+    retrieval_profile: str = "ranked"
+    retrieval_diagnostics: dict = Field(default_factory=dict)
+    timings_ms: dict[str, float] = Field(default_factory=dict)
+    model_usage: list[dict] = Field(default_factory=list)
+    evidence_chunk_ids: list[str] = Field(default_factory=list)
+    omitted_evidence_ids: list[str] = Field(default_factory=list)
+    coverage_review: Literal["not_needed", "disabled", "completed", "skipped_budget", "failed"] = "not_needed"
+    validation_failures: list[dict[str, str | int]] = Field(default_factory=list)
+    answer_mode: Literal["grounded", "generated"] = "generated"
+    effective_config: dict | None = None
 
 
 from app.generation.models import Claim

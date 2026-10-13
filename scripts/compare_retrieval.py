@@ -71,15 +71,15 @@ async def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--database-url', default=None)
     parser.add_argument('--candidate-k', type=int, default=20)
-    parser.add_argument('--top-k', type=int, default=5)
+    parser.add_argument('--top-k', type=int, default=20)
     parser.add_argument('--repeats', type=int, default=1)
     parser.add_argument('--currency', default='unspecified')
     args = parser.parse_args()
     if not 1 <= args.top_k <= args.candidate_k <= 50 or not 1 <= args.repeats <= 5:
         parser.error('Need 1 <= top-k <= candidate-k <= 50 and repeats in 1..5')
     settings = Settings.from_env()
-    if not settings.vector_database_url or settings.retrieval.rerank.provider == 'none':
-        parser.error('Configure vector database and rerank provider (fake or compatible)')
+    if not settings.vector_database_url or settings.embedding.provider != 'compatible' or settings.retrieval.rerank.provider != 'compatible':
+        parser.error('Configure database, compatible Embedding and compatible Reranker')
     if args.currency == 'unspecified' and any(p is not None for p in (
             settings.embedding.cost_per_million_tokens, settings.retrieval.rerank.cost_per_million_tokens)):
         parser.error('Specify --currency when recording prices')
@@ -92,7 +92,7 @@ async def main():
             'retrieval': retrieval_settings.public_config, 'top_k': args.top_k, 'repeats': args.repeats,
             'currency': args.currency, 'embedding_price': settings.embedding.cost_per_million_tokens,
             'code_and_data_sha256': fingerprint()},
-        'scope': 'Retrieval only; Fake models are engineering controls, not learned-model quality evidence.',
+        'scope': 'Retrieval only; source coverage does not measure generated answer quality.',
         'latency_note': 'Paired candidates are shared. Composed times = shared vector candidate-K search + '
             'lexical/fusion for hybrid + per-mode finalization. Not three independent end-to-end measurements; '
             'vector baseline also retrieves candidate-K, not production top-K.',
@@ -172,7 +172,7 @@ async def main():
         lines.append(f"| {mode} | {s['mean_source_recall_at_k']} | {s['mean_reciprocal_rank']} | "
             f"{s['cross_document_all_sources_rate']} | {s['p50_composed_retrieval_ms']}/{s['p95_composed_retrieval_ms']} | "
             f"{s['rerank_total_tokens']} | {s['rerank_estimated_cost']} | {s['rerank_failures']}/{s['errors']} |")
-    lines += ['', '这是助手运行证据，不是用户学习总结。Fake Rerank 仅对候选做 BM25 排序，不是语义模型。',
+    lines += ['', '这是检索实验记录，不是答案正确性评测。',
         '费用 null 表示未提供价格/usage或调用失败。组合耗时共享候选召回，不能当作线上独立请求时延。',
         '来源命中只要求冻结章节坐标相交，不等于每个答案要点齐全；未生成答案或评分语义正确性。',
         '保留测试未运行；真实模型开发集对照和默认方案冻结尚需另行完成。']

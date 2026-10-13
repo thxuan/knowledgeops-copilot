@@ -11,21 +11,10 @@ from app.retrieval.rerank import RerankSettings
 
 
 @dataclass(frozen=True)
-class ModelSettings:
-    provider: str = "fake"
-    model_id: str = "fake-calculator-v1"
-    input_limit: int = 4096
-    output_limit: int = 512
-    timeout_seconds: float = 30.0
-    api_key: str | None = None
-
-
-@dataclass(frozen=True)
 class Settings:
     agent: AgentSettings = AgentSettings()
     app_env: str = "local"
     max_document_bytes: int = 1_048_576
-    model: ModelSettings = ModelSettings()
     database_url: str = DEFAULT_DATABASE_URL
     ingestion_worker_enabled: bool = True
     ingestion_lease_seconds: float = 30.0
@@ -39,6 +28,9 @@ class Settings:
 
     @classmethod
     def from_env(cls) -> "Settings":
+        review = os.getenv("KNOWLEDGEOPS_GENERATION_COVERAGE_REVIEW", "true").lower()
+        if review not in {"true", "false"}:
+            raise ValueError("KNOWLEDGEOPS_GENERATION_COVERAGE_REVIEW must be true or false")
         database_url = (os.getenv("KNOWLEDGEOPS_DATABASE_URL") or
                         os.getenv("KNOWLEDGEOPS_VECTOR_DATABASE_URL") or DEFAULT_DATABASE_URL)
         agent = AgentSettings.from_env()
@@ -58,25 +50,27 @@ class Settings:
                     cost_per_million_tokens=(float(os.environ["KNOWLEDGEOPS_RERANK_COST_PER_MILLION_TOKENS"])
                         if os.getenv("KNOWLEDGEOPS_RERANK_COST_PER_MILLION_TOKENS") else None))),
             generation=GenerationSettings(
-                provider=os.getenv("KNOWLEDGEOPS_GENERATION_PROVIDER", "fake"),
-                model_id=os.getenv("KNOWLEDGEOPS_GENERATION_MODEL_ID", "fake-extractive-v1"),
-                input_limit=int(os.getenv("KNOWLEDGEOPS_GENERATION_INPUT_LIMIT", "16384")),
+                provider=os.getenv("KNOWLEDGEOPS_GENERATION_PROVIDER", "unconfigured"),
+                model_id=os.getenv("KNOWLEDGEOPS_GENERATION_MODEL_ID", "qwen-plus"),
+                input_limit=int(os.getenv("KNOWLEDGEOPS_GENERATION_INPUT_LIMIT", "32000")),
                 output_limit=int(os.getenv("KNOWLEDGEOPS_GENERATION_OUTPUT_LIMIT", "2048")),
                 history_budget=int(os.getenv("KNOWLEDGEOPS_GENERATION_HISTORY_BUDGET", "2048")),
                 summary_budget=int(os.getenv("KNOWLEDGEOPS_GENERATION_SUMMARY_BUDGET", "2048")),
-                timeout_seconds=float(os.getenv("KNOWLEDGEOPS_GENERATION_TIMEOUT_SECONDS", "30")),
+                timeout_seconds=float(os.getenv("KNOWLEDGEOPS_GENERATION_TIMEOUT_SECONDS", "60")),
                 base_url=os.getenv("KNOWLEDGEOPS_GENERATION_BASE_URL", "https://api.example.invalid/v1"),
                 api_key=os.getenv("KNOWLEDGEOPS_GENERATION_API_KEY") or None,
                 temperature=float(os.getenv("KNOWLEDGEOPS_GENERATION_TEMPERATURE", "0")),
                 top_p=(float(os.environ["KNOWLEDGEOPS_GENERATION_TOP_P"])
                     if os.getenv("KNOWLEDGEOPS_GENERATION_TOP_P") else None),
+                coverage_review=review == "true",
+                answer_mode=os.getenv("KNOWLEDGEOPS_GENERATION_ANSWER_MODE", "generated"),
             ),
             vector_database_url=database_url,
             embedding=EmbeddingSettings(
-                provider=os.getenv("KNOWLEDGEOPS_EMBEDDING_PROVIDER", "fake"),
-                model_id=os.getenv("KNOWLEDGEOPS_EMBEDDING_MODEL_ID", "fake-hash-v1"),
+                provider=os.getenv("KNOWLEDGEOPS_EMBEDDING_PROVIDER", "unconfigured"),
+                model_id=os.getenv("KNOWLEDGEOPS_EMBEDDING_MODEL_ID", "text-embedding-v4"),
                 dimensions=int(os.getenv("KNOWLEDGEOPS_EMBEDDING_DIMENSIONS", "128")),
-                collection=os.getenv("KNOWLEDGEOPS_EMBEDDING_COLLECTION", "day5-fake"),
+                collection=os.getenv("KNOWLEDGEOPS_EMBEDDING_COLLECTION", "knowledgeops-v1"),
                 base_url=os.getenv("KNOWLEDGEOPS_EMBEDDING_BASE_URL", "https://api.example.invalid/v1"),
                 api_key=os.getenv("KNOWLEDGEOPS_EMBEDDING_API_KEY") or None,
                 batch_size=int(os.getenv("KNOWLEDGEOPS_EMBEDDING_BATCH_SIZE", "16")),
@@ -93,14 +87,7 @@ class Settings:
             ingestion_lease_seconds=float(os.getenv("KNOWLEDGEOPS_INGESTION_LEASE_SECONDS", "30")),
             ingestion_max_attempts=int(os.getenv("KNOWLEDGEOPS_INGESTION_MAX_ATTEMPTS", "3")),
             ingestion_poll_seconds=float(os.getenv("KNOWLEDGEOPS_INGESTION_POLL_SECONDS", "0.2")),
-            model=ModelSettings(
-                provider=os.getenv("KNOWLEDGEOPS_MODEL_PROVIDER", "fake"),
-                model_id=os.getenv("KNOWLEDGEOPS_MODEL_ID", "fake-calculator-v1"),
-                input_limit=int(os.getenv("KNOWLEDGEOPS_MODEL_INPUT_LIMIT", "4096")),
-                output_limit=int(os.getenv("KNOWLEDGEOPS_MODEL_OUTPUT_LIMIT", "512")),
-                timeout_seconds=float(os.getenv("KNOWLEDGEOPS_MODEL_TIMEOUT_SECONDS", "30")),
-                api_key=os.getenv("KNOWLEDGEOPS_MODEL_API_KEY") or None,
-            ),
+
         )
         settings.validate()
         return settings
@@ -119,10 +106,8 @@ class Settings:
         self.generation.validate()
         if self.app_env not in {"local", "test"}:
             raise ValueError("Local test authentication cannot be used in production")
-        if self.max_document_bytes < 1 or self.model.input_limit < 1 or self.model.output_limit < 1:
+        if self.max_document_bytes < 1:
             raise ValueError("Size and token limits must be positive")
-        if self.model.timeout_seconds <= 0:
-            raise ValueError("Model timeout must be positive")
 
         if self.ingestion_lease_seconds <= 0 or self.ingestion_poll_seconds <= 0:
             raise ValueError("Ingestion lease and poll intervals must be positive")

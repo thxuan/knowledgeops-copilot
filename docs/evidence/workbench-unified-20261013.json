@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-13",
+  "changes": [
+    "unified conversation and durable agent history",
+    "real-model-only workbench",
+    "model configuration and connection test",
+    "retrieval presets and compact controls"
+  ],
+  "validation": {
+    "full_suite_passed": 319,
+    "additional_model_tests_passed": 8,
+    "javascript_syntax": "passed",
+    "desktop_viewport": [
+      1440,
+      1000
+    ],
+    "mobile_viewport": [
+      390,
+      844
+    ],
+    "horizontal_overflow": false,
+    "browser_errors": []
+  },
+  "limitations": [
+    "No live provider key present in the launched process; external real-model quality was not retested.",
+    "Connection success tested through the existing compatible adapter with an HTTP transport double.",
+    "Model settings persist in server memory; full UI conversation history is not restored after reload."
+  ]
+}

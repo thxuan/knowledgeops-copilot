@@ -34,3 +34,13 @@ def isolated_postgres(monkeypatch):
                     db.execute(sql.SQL("DROP SCHEMA {} CASCADE").format(sql.Identifier(schema)))
         _schemas.clear()
         _test_url = None
+
+
+@pytest.fixture(autouse=True)
+def offline_protocol_doubles(monkeypatch):
+    import app.main as main
+    from tests.doubles import ExtractiveGenerationDouble, HashEmbeddingDouble, ScriptedAgentDouble
+    original_generation, original_embedding = main.make_generation_client, main.make_embedding_client
+    monkeypatch.setattr(main, 'make_generation_client', lambda s: ExtractiveGenerationDouble() if s.provider == 'unconfigured' else original_generation(s))
+    monkeypatch.setattr(main, 'make_embedding_client', lambda s: HashEmbeddingDouble(s) if s.provider == 'unconfigured' else original_embedding(s))
+    monkeypatch.setattr(main, 'UnconfiguredAgentModel', ScriptedAgentDouble)

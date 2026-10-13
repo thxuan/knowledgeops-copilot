@@ -1,3 +1,4 @@
+from tests.doubles import ScriptedAgentDouble
 from conftest import pg_dsn
 import asyncio
 import json
@@ -10,13 +11,13 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 from app.agent.contracts import AgentSettings, ApprovalRequest
-from app.agent.provider import FakeAgentModel, tool_message
+from app.agent.provider import tool_message
 from app.agent.service import AgentService
 from app.core.config import Settings
 from app.core.errors import AppError
 from app.core.identity import Identity, LOCAL_IDENTITIES
 from app.db.agent import AgentRepository
-from app.evals.agent import ScenarioModel, run_scenario, approval_for, ticket_count
+from tests.agent_scenarios import ScenarioModel, run_scenario, approval_for, ticket_count
 from app.main import create_app
 
 @pytest.fixture
@@ -42,7 +43,7 @@ def run(repo, identity, model=None, text='创建工单', settings=None):
     if settings is not None:
         repo = AgentRepository(settings)
     state = repo.create(identity, text, uuid4().hex, 'test-trace')
-    asyncio.run(AgentService(repo, model or FakeAgentModel(), settings or repo.settings).execute(state['run_id'], identity))
+    asyncio.run(AgentService(repo, model or ScriptedAgentDouble(), settings or repo.settings).execute(state['run_id'], identity))
     return repo.get(state['run_id'], identity)
 
 SCENARIOS = [json.loads(line) for line in (Path(__file__).parents[2]/'eval_data/agent_tasks.jsonl').read_text(encoding='utf-8-sig').splitlines()]
@@ -176,16 +177,16 @@ def test_process_exit_at_approval_and_commit_boundaries(agent_env):
     child = '''
 import asyncio, os, sys
 from app.agent.contracts import AgentSettings
-from app.agent.provider import FakeAgentModel
+from tests.doubles import ScriptedAgentDouble
 from app.agent.service import AgentService
 from app.core.identity import Identity
 from app.db.agent import AgentRepository
-from app.evals.agent import approval_for
+from tests.agent_scenarios import approval_for
 s=AgentSettings(database_url=os.environ['KNOWLEDGEOPS_TEST_VECTOR_DATABASE_URL'],business_database_url=os.environ['KNOWLEDGEOPS_TEST_AGENT_READER_URL'])
 r=AgentRepository(s)
 i=Identity(sys.argv[1],sys.argv[2],frozenset())
 if sys.argv[4]=='pending':
-    asyncio.run(AgentService(r,FakeAgentModel(),s).execute(sys.argv[3],i))
+    asyncio.run(AgentService(r,ScriptedAgentDouble(),s).execute(sys.argv[3],i))
 else:
     r.approve(sys.argv[3],i,approval_for(r.get(sys.argv[3],i)))
 os._exit(71)
@@ -201,7 +202,7 @@ os._exit(71)
             assert ticket_count(restored,rid)==0
         else:
             assert restored.get(rid,identity)['phase']=='after_commit'
-            asyncio.run(AgentService(restored,FakeAgentModel(),repo.settings).execute(rid,identity))
+            asyncio.run(AgentService(restored,ScriptedAgentDouble(),repo.settings).execute(rid,identity))
             assert restored.get(rid,identity)['status']=='completed'
             assert ticket_count(restored,rid)==1
 
@@ -227,7 +228,7 @@ def test_atomic_rollback_after_ticket_insert(agent_env,monkeypatch):
 
 @pytest.mark.parametrize("origin", ["document", "business"])
 def test_injected_tool_content_cannot_bypass_approval(agent_env, origin):
-    from app.evals.agent import FixtureRetrieval
+    from tests.agent_scenarios import FixtureRetrieval
     from app.agent.contracts import dump
     repo,identity=agent_env
     if origin == "business":
@@ -278,13 +279,13 @@ def test_five_data_dependent_multi_step_tasks(agent_env,triage,resolution):
 def test_persisted_policy_cannot_be_silently_expanded(agent_env):
     repo,identity=agent_env
     state=repo.create(identity,'计算 1 + 1',uuid4().hex,'policy-test')
-    asyncio.run(AgentService(repo,FakeAgentModel(),replace(repo.settings,max_steps=999)).execute(state['run_id'],identity))
+    asyncio.run(AgentService(repo,ScriptedAgentDouble(),replace(repo.settings,max_steps=999)).execute(state['run_id'],identity))
     assert repo.get(state['run_id'],identity)['outcome']=='POLICY_CHANGED'
 
 def test_sse_disconnect_preserves_same_run(agent_env,tmp_path,monkeypatch):
     repo,identity=agent_env
     monkeypatch.setitem(LOCAL_IDENTITIES,identity.user_id,identity)
-    class SlowFake(FakeAgentModel):
+    class SlowFake(ScriptedAgentDouble):
         async def complete(self,*args):
             await asyncio.sleep(.08)
             return await super().complete(*args)

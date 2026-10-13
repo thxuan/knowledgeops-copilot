@@ -1,3 +1,5 @@
+from tests.doubles import HashEmbeddingDouble
+from tests.doubles import ExtractiveGenerationDouble
 import asyncio
 import json
 from dataclasses import replace
@@ -57,9 +59,9 @@ def test_compatible_json_adapter(finish, status):
 def test_real_sample_correction_keeps_mail_evidence_in_top5():
     """Regress the user failure with all authorized samples, actual chunks and Fake vectors."""
     from dataclasses import asdict
-    from app.core.embedding import EmbeddingSettings, FakeEmbeddingClient, chunk_input
+    from app.core.embedding import EmbeddingSettings, chunk_input
     from app.generation.context import retrieval_query
-    from app.generation.provider import FakeGenerationClient
+    from tests.doubles import ExtractiveGenerationDouble
     from app.ingestion.chunker import ChunkConfig, chunk_document
     from scripts.compare_chunks import load_corpus
 
@@ -81,7 +83,7 @@ def test_real_sample_correction_keeps_mail_evidence_in_top5():
             version=doc["version"], parser_version=doc["parser_version"],
             config=ChunkConfig(), markdown=True))
     async def run():
-        embedding = FakeEmbeddingClient(EmbeddingSettings())
+        embedding = HashEmbeddingDouble(EmbeddingSettings())
         vectors = (await embedding.embed([chunk_input(c) for c in chunks])).vectors
         qv = (await embedding.embed([query])).vectors[0]
         ranked = sorted(zip(chunks, vectors), key=lambda item: sum(a*b for a,b in zip(qv,item[1])), reverse=True)
@@ -89,7 +91,7 @@ def test_real_sample_correction_keeps_mail_evidence_in_top5():
         assert any("MAIL-552" in h["text"] for h in hits)
         context = build_context(question, history, {}, hits, GenerationSettings())
         answer = parse_generation(
-            await FakeGenerationClient().generate(context.messages, GenerationSettings()))
+            await ExtractiveGenerationDouble().generate(context.messages, GenerationSettings()))
         assert not answer.insufficient_context
         assert "TeamDrive" in answer.answer and "外发" in answer.answer
         assert "ShieldDesk" not in answer.answer

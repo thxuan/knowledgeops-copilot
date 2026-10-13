@@ -57,6 +57,45 @@ class GeneratedClaims(BaseModel):
                                citations=citations, insufficient_context=False, claims=self.claims)
 
 
+def grounded_answer(answer: GeneratedAnswer, evidence: list[dict], question: str = "") -> GeneratedAnswer:
+    """Render complete selected source passages, keeping all their conditions.
+
+    This guarantees verbatim support for returned text, not relevance/completeness
+    of model passage selection or truth of the source itself. Never truncate rules.
+    """
+    from app.retrieval.lexical import tokenize
+    by_id = {h["chunk_id"]: h for h in evidence}
+    selected = list(answer.citations)
+    sources = {(by_id[cid]["source"], by_id[cid]["version"]) for cid in selected}
+    stop = {"什么", "哪些", "如何", "应该", "这个", "那个", "现在", "是否", "时候", "怎样", "需要"}
+    query_terms = {t for t in tokenize(question) if t not in stop and not t.isdigit()}
+    covered = set(tokenize("\n".join(by_id[cid]["text"] for cid in selected)))
+    # Retain explicitly queried, uncovered sections of an already selected source.
+    # Only the actual context is eligible: never fetch a new document or read gold labels.
+    for hit in evidence:
+        if hit["chunk_id"] in selected or (hit["source"], hit["version"]) not in sources:
+            continue
+        paths = hit.get("citation", {}).get("heading_paths", [])
+        headings = " ".join(path[-1] for path in paths if len(path) > 1)
+        if (query_terms - covered) & set(tokenize(headings)):
+            selected.append(hit["chunk_id"])
+            covered.update(tokenize(hit["text"]))
+    claims = [{"text": by_id[cid]["text"].strip(), "citations": [cid]}
+              for cid in selected]
+    return GeneratedClaims(insufficient_context=False, claims=claims).to_answer()
+
+
+def resolve_citations(answer: GeneratedAnswer, references: dict[str, str]) -> GeneratedAnswer:
+    """Resolve short model references to canonical IDs; caller still checks membership.
+
+    Canonical IDs remain accepted for clients using the old wire format, but never
+    authorize anything outside this request's actual evidence.
+    """
+    claims = [{"text": c.text, "citations": list(dict.fromkeys(references.get(cid, cid) for cid in c.citations))}
+              for c in answer.claims]
+    return GeneratedClaims(insufficient_context=answer.insufficient_context, claims=claims).to_answer()
+
+
 def parse_generation(raw: str) -> GeneratedAnswer:
     """Reject extra model fields; render only validated claims."""
     return GeneratedClaims.model_validate_json(raw).to_answer()

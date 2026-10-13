@@ -10,10 +10,15 @@ from uuid import uuid4
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
+from app.api.workbench_management import router as management_router
+from app.api.workbench_datasets import router as datasets_router
+from app.api.workbench_routes import router as workbench_router
+from app.api.workbench_session import router as workbench_session_router
 from starlette.exceptions import HTTPException
 
-from app.agent.loop import AgentRunner, FakeModel
-from app.agent.provider import CompatibleAgentModel, FakeAgentModel
+from app.agent.provider import CompatibleAgentModel, UnconfiguredAgentModel
 from app.agent.service import AgentService
 from app.db.agent import AgentRepository
 from app.api.agent_routes import router as agent_router
@@ -21,7 +26,6 @@ from app.api.routes import router
 from app.core.config import Settings
 from app.core.lifecycle import ChatAdmission
 from app.core.errors import AppError
-from app.core.model import ModelClient
 from app.db.conversations import ConversationRepository
 from app.generation.provider import GenerationClient, make_generation_client
 from app.generation.service import ChatService
@@ -52,15 +56,10 @@ def error_response(code: str, message: str, request_id: str, status_code: int) -
     )
 
 
-def create_app(settings: Settings | None = None, model: ModelClient | None = None,
+def create_app(settings: Settings | None = None,
                generation_client: GenerationClient | None = None, agent_model=None) -> FastAPI:
     settings = settings or Settings.from_env()
     settings.validate()
-    if model is None:
-        if settings.model.provider != "fake":
-            raise ValueError("Real provider adapters are scheduled for Day 10; use fake for Day 2")
-        model = FakeModel()
-
     repository = IngestionRepository(settings.database_url)
     chunk_repository = ChunkRepository(repository)
     conversations = ConversationRepository(repository)
@@ -72,11 +71,14 @@ def create_app(settings: Settings | None = None, model: ModelClient | None = Non
     worker = IngestionWorker(repository, settings.ingestion_lease_seconds,
                              settings.ingestion_max_attempts, settings.ingestion_poll_seconds)
 
-    retrieval_service = RetrievalService(vector_service, settings.retrieval) if vector_service else None
+    from app.retrieval.planning import QueryPlanner
+    generation_client = generation_client or make_generation_client(settings.generation)
+    retrieval_service = (RetrievalService(vector_service, settings.retrieval,
+        planner=QueryPlanner(generation_client, settings.generation)) if vector_service else None)
 
     agent_repository = AgentRepository(settings.agent) if settings.agent.database_url else None
     persistent_agent = (AgentService(agent_repository, agent_model or (
-        CompatibleAgentModel(settings.agent) if settings.agent.provider == "compatible" else FakeAgentModel()),
+        CompatibleAgentModel(settings.agent) if settings.agent.provider == "compatible" else UnconfiguredAgentModel()),
         settings.agent, retrieval_service) if agent_repository else None)
 
     @asynccontextmanager
@@ -90,16 +92,20 @@ def create_app(settings: Settings | None = None, model: ModelClient | None = Non
             await asyncio.to_thread(agent_repository.initialize)
         stop = asyncio.Event()
         task = asyncio.create_task(worker.run(stop)) if settings.ingestion_worker_enabled else None
+        app.state.ingestion_stop = stop
+        app.state.ingestion_task = task
         try:
             yield
         finally:
-            if persistent_agent:
-                await persistent_agent.shutdown()
-            stop.set()
-            if task is not None:
-                await task
+            if app.state.persistent_agent:
+                await app.state.persistent_agent.shutdown()
+            app.state.ingestion_stop.set()
+            if app.state.ingestion_task is not None:
+                await app.state.ingestion_task
 
     app = FastAPI(title="KnowledgeOps Copilot", version="0.7.0", lifespan=lifespan)
+    app.state.management_active_requests = 0
+    app.state.management_changing = False
     app.state.chat_admission = ChatAdmission(settings.agent.concurrency, settings.agent.requests_per_minute)
     app.state.persistent_agent = persistent_agent
     app.state.vector_service = vector_service
@@ -111,7 +117,6 @@ def create_app(settings: Settings | None = None, model: ModelClient | None = Non
     app.state.document_repository = DocumentRepository(repository)
     app.state.ingestion_worker = worker
     app.state.documents = DocumentService(settings.max_document_bytes, repository)
-    app.state.agent = AgentRunner(model, settings.model)
     app.state.conversations = conversations
     app.state.chat = ChatService(conversations, retrieval_service,
                                 generation_client or make_generation_client(settings.generation),
@@ -122,11 +127,21 @@ def create_app(settings: Settings | None = None, model: ModelClient | None = Non
         request_id = str(uuid4())
         request.state.request_id = request_id
         started = time.perf_counter()
+        if app.state.management_changing:
+            return error_response('WORKSPACE_BUSY', '正在切换连接，请稍后重试。', request_id, 409)
+        expected_workspace = request.headers.get('X-Knowledge-Workspace')
+        if expected_workspace:
+            from app.evals.imported import runtime_fingerprint
+            if expected_workspace != runtime_fingerprint(app):
+                return error_response('WORKSPACE_CHANGED', '连接或模型配置已变化，请刷新知识库后重新开始。', request_id, 409)
+        app.state.management_active_requests += 1
         try:
             response = await call_next(request)
         except Exception:
             logger.exception(json.dumps({"event": "request.failed", "request_id": request_id}))
             response = error_response("INTERNAL_ERROR", "Internal server error", request_id, 500)
+        finally:
+            app.state.management_active_requests -= 1
         response.headers["X-Request-ID"] = request_id
         if request.url.path != "/health":
             response.headers["Cache-Control"] = "no-store"
@@ -157,6 +172,11 @@ def create_app(settings: Settings | None = None, model: ModelClient | None = Non
 
     app.include_router(router)
     app.include_router(agent_router)
+    app.include_router(workbench_router)
+    app.include_router(datasets_router)
+    app.include_router(management_router)
+    app.include_router(workbench_session_router)
+    app.mount("/workbench/assets", StaticFiles(directory=Path(__file__).parent / "web"), name="workbench-assets")
     return app
 
 

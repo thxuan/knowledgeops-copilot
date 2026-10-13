@@ -91,13 +91,14 @@ async def main():
               "signature": settings.embedding.signature, "collection": settings.embedding.collection,
               "pgvector_version": version, "indexed_vectors": count, "question_count": len(questions), "split": "dev",
               "repeats": args.repeats, "index_setup_ms": index_setup_ms, "index_name": repo.index_name,
-              "scope": "DB call includes connection and config checks; excludes query embedding. Recall compares ANN IDs to exact IDs, not answer evidence. Fake cannot validate semantic quality. Timing is local warm/small-corpus evidence only.",
+              "scope": "DB call includes connection and config checks; excludes query embedding. Recall compares ANN IDs to exact IDs, not answer evidence. Timing is local warm/small-corpus evidence only.",
               "corpus": list(corpus.values()), "vectors_sha256": vector_hash,
               "questions_sha256": hashlib.sha256(qpath.read_bytes()).hexdigest(),
               "code_sha256": {name: hashlib.sha256((ROOT/name).read_bytes()).hexdigest() for name in
                 ["app/core/embedding.py", "app/db/vectors.py", "app/retrieval/service.py", "scripts/compare_vector_indexes.py"]},
               "summaries": summaries, "plans": plans, "details": details}
     directory = ROOT / "docs/experiments"
+    directory.mkdir(parents=True, exist_ok=True)
     (directory / "day5-vector-indexes.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     rows = ["# Day 5 向量索引实验（助手运行）", "", f"日期：{report['run_date']}。pgvector {version}；集合 {settings.embedding.collection}；{count} 个向量。",
             f"20 条开发题，每种配置重复 {args.repeats} 次，Top K=5。保留测试集未运行。", "",
@@ -108,7 +109,7 @@ async def main():
     plan_used = repo.index_name in json.dumps(plans["hnsw"])
     rows += ["", f"HNSW 查询计划中出现目标索引：{plan_used}。精确模式禁用 IndexScan/BitmapScan；HNSW 模式仅在该事务中禁用 SeqScan，便于小数据上验证索引路径。",
              "计时包含连接、配置校验及 SQL，排除查询 Embedding；不是 API 全链路延迟。",
-             "Fake 是稳定哈希向量，不是训练的语义模型。外部 Embedding 调用和成本均为 0；真实模型质量、Token 消耗和付费失败成本未测。",
+             "Embedding 调用使用已配置的真实模型；本报告不统计其费用，不能据此认为费用为零。",
              "ANN Recall 的标注是精确搜索返回的 Chunk ID；不等于 Day 4 的来源 Recall，更不等于答案准确率。距离同分边界可能使 ID 重叠下降。",
              "小语料和本机计时不支持声称 HNSW 一定更快；选择默认精确搜索，HNSW 保留作对照。",
              "", "原始结果、代码指纹、查询计划：[day5-vector-indexes.json](day5-vector-indexes.json)。"]

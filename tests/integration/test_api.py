@@ -30,17 +30,6 @@ def test_chat_requires_server_mapped_identity(client) -> None:
     }
 
 
-def test_fake_model_requests_tool_and_server_executes_it(client) -> None:
-    response = client.post(
-        "/agent/demo", json={"message": "计算 2 + 3"}, headers={"X-Local-User-Id": "u_employee_001"}
-    )
-    assert response.status_code == 200
-    assert response.json() == {
-        "answer": "计算结果：5", "model_provider": "fake",
-        "tool_calls": [{"call_id": "fake-call-1", "name": "calculator", "result": "5"}],
-    }
-
-
 def test_document_receipt_and_file_validation(client) -> None:
     headers = {"X-Local-User-Id": "u_engineer_001"}
     accepted = client.post("/documents", files={"file": ("note.md", b"# Test\n")}, headers=headers)

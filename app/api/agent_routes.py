@@ -26,7 +26,10 @@ async def start(body: StartRequest, request: Request, identity: Identity = Depen
 
 @router.get("/agent/{run_id}")
 async def get_run(run_id: str, request: Request, identity: Identity = Depends(get_identity)):
-    return public(await asyncio.to_thread(service(request).repo.get, run_id, identity))
+    state = await asyncio.to_thread(service(request).repo.get, run_id, identity)
+    if state.get("conversation_id"):
+        await asyncio.to_thread(request.app.state.conversations.sync_agent_turns, state["conversation_id"], identity, False)
+    return public(state)
 
 @router.post("/agent/{run_id}/resume", status_code=202)
 async def resume(run_id: str, request: Request, identity: Identity = Depends(get_identity)):

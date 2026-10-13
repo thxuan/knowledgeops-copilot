@@ -62,14 +62,6 @@ async def conversation(conversation_id: str, request: Request, after: int = Quer
                                    conversation_id, identity, after, limit)
 
 
-from app.api.schemas import AgentDemoRequest, AgentDemoResponse
-
-
-@router.post("/agent/demo", response_model=AgentDemoResponse)
-async def agent_demo(body: AgentDemoRequest, request: Request, identity: Identity = Depends(get_identity)):
-    result = await request.app.state.agent.run(body.message)
-    return AgentDemoResponse(answer=result.answer, tool_calls=result.tool_calls,
-                             model_provider=request.app.state.settings.model.provider)
 
 
 @router.post("/documents/{document_id}/chunks", response_model=ChunkSetResponse)

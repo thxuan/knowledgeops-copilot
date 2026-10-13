@@ -1,3 +1,4 @@
+from tests.doubles import ExtractiveGenerationDouble
 from conftest import pg_dsn
 import asyncio
 import json
@@ -10,7 +11,7 @@ from app.core.config import Settings
 from app.core.identity import LOCAL_IDENTITIES, Identity
 from app.core.errors import AppError
 from app.generation.context import dump
-from app.generation.provider import FakeGenerationClient
+from tests.doubles import ExtractiveGenerationDouble
 from app.main import create_app
 from app.retrieval.objects import make_citation
 from dataclasses import asdict
@@ -93,6 +94,9 @@ def test_multi_turn_user_correction(chat_app):
 
 def test_multi_turn_long_history_summary_restart_and_original_lookup(chat_app):
     app, client, settings, hits = chat_app
+    # Keep this regression's deliberately small budget independent of app defaults.
+    settings = replace(settings, generation=replace(settings.generation, input_limit=16384))
+    app.state.chat.settings = settings.generation
     cid = ask(client)["conversation_id"]
     for n in range(14):
         value = ask(client, f"备注 {n}：不是 MAIL-552，是 TL-403；禁止关闭安全检查。" + "背景记录。" * 100, cid)
@@ -148,7 +152,7 @@ def test_invalid_outputs_are_rejected_and_raw_content_not_persisted(chat_app, ba
 
 def test_repair_success_and_refusal_text_is_server_owned(chat_app):
     app, client, _, _ = chat_app
-    app.state.chat.client = Scripted(["{", FakeGenerationClient().generate])
+    app.state.chat.client = Scripted(["{", ExtractiveGenerationDouble().generate])
     assert ask(client)["status"] == "answered"
     app.state.chat.client = Scripted([dump({"claims":[], "insufficient_context":True})])
     refused = ask(client)
@@ -169,7 +173,7 @@ def test_revocation_during_generation_does_not_commit_and_history_redacts(chat_a
     app, client, _, hits = chat_app
     cid = ask(client)["conversation_id"]
     async def revoke(messages, settings):
-        result = await FakeGenerationClient().generate(messages, settings)
+        result = await ExtractiveGenerationDouble().generate(messages, settings)
         app.state.document_repository.permissions(hits[0]["document_id"], IDENTITY, [])
         return result
     app.state.chat.client = Scripted([revoke])
@@ -202,7 +206,7 @@ def test_concurrent_turn_has_one_atomic_winner(chat_app):
             if self.entered == 2:
                 self.ready.set()
             await self.ready.wait()
-            return await FakeGenerationClient().generate(messages, settings)
+            return await ExtractiveGenerationDouble().generate(messages, settings)
     async def run():
         app.state.chat.client = Barrier()
         body = ChatRequest(message="TL-403 设备修复后等待多久？", conversation_id=cid)
@@ -279,7 +283,7 @@ def test_targeted_repair_and_safe_diagnostics(chat_app, monkeypatch, failure, co
     async def second(messages, settings):
         prompts.append(json.loads(json.dumps(messages)))
         assert service.REPAIR_HINTS[code] in messages[0]["content"]
-        return await FakeGenerationClient().generate(messages, settings)
+        return await ExtractiveGenerationDouble().generate(messages, settings)
 
     app.state.chat.client = Scripted([first, second])
     result = ask(client)
@@ -287,7 +291,7 @@ def test_targeted_repair_and_safe_diagnostics(chat_app, monkeypatch, failure, co
     assert prompts[0][1] == prompts[1][1]
     expected = {"event": "generation.validation_failed",
                 "conversation_id": result["conversation_id"], "attempt": 1,
-                "validation_code": code}
+                "phase": "draft", "validation_code": code}
     if failure == "extra":
         expected["schema_issues"] = [{"field": "<extra>", "type": "extra_forbidden"}]
     elif failure == "schema":

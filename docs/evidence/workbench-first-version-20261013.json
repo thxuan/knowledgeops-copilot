@@ -1,0 +1,52 @@
+{
+  "date": "2026-10-13",
+  "provider": "fake",
+  "full_regression": {
+    "passed": 313,
+    "skipped": 0
+  },
+  "final_affected_regression": {
+    "passed": 117,
+    "skipped": 0,
+    "overlaps_full_regression": true
+  },
+  "browser": {
+    "viewports": [
+      [
+        1440,
+        1000
+      ],
+      [
+        390,
+        844
+      ]
+    ],
+    "whole_page_horizontal_overflow": false,
+    "checked": [
+      "request_parameters",
+      "cross_document_ab",
+      "citations",
+      "human_review",
+      "identity_reset",
+      "agent_approval_commit",
+      "batch_stop",
+      "json_preview",
+      "keyboard_tab_escape"
+    ]
+  },
+  "bm25_dev_batch": {
+    "identity": "u_employee_001",
+    "responses": 18,
+    "failed_requests": 0,
+    "all_keyword_only": true,
+    "all_vector_stages_empty": true,
+    "semantic_quality": "not_graded"
+  },
+  "limits": [
+    "Fake does not demonstrate real model quality",
+    "Generation sampling top_k not wired",
+    "Semantic grades require human labels",
+    "Browser-session experiment persistence only",
+    "Download handling depends on browser; JSON copy is available"
+  ]
+}

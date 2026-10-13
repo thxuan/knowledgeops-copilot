@@ -43,8 +43,6 @@ class RecordingGeneration:
 
 
 def generation_cost(calls, provider, input_price, output_price):
-    if provider == "fake":
-        return {"prompt_tokens": None, "completion_tokens": None, "estimated_cost": 0.0}
     usages = [c["metadata"].get("usage", {}) for c in calls]
     complete = bool(usages) and all(
         type(u.get(key)) is int for u in usages for key in ("prompt_tokens", "completion_tokens"))
@@ -76,6 +74,10 @@ def summarize(rows):
         "mean_section_char_coverage_at_k": mean(r["retrieval"].get("section_char_coverage_at_k") for r in answerable),
         "cross_document_all_sources_rate": mean(r["retrieval"].get("all_required_sources_recalled") for r in cross),
         "cross_document_count": len(cross),
+        "input_evidence_source_recall": mean(r.get("input_evidence_metrics", {}).get("source_recall_at_k") for r in answerable),
+        "input_evidence_section_coverage": mean(r.get("input_evidence_metrics", {}).get("section_char_coverage_at_k") for r in answerable),
+        "input_evidence_cross_document_all_sources_rate": mean(r.get("input_evidence_metrics", {}).get("all_required_sources_recalled") for r in cross),
+        "input_evidence_metric_count": sum(bool(r.get("input_evidence_metrics")) for r in answerable),
         "retrieval_metric_count": sum(bool(r["retrieval"]) for r in answerable),
         "retrieval_metric_denominator": "answerable samples with completed retrieval; errors separately counted",
         "latency_sample_count": len(latency),

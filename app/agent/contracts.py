@@ -101,8 +101,8 @@ def suspicious(text):
 class AgentSettings:
     database_url: str | None = None
     business_database_url: str | None = None
-    provider: str = "fake"
-    model_id: str = "fake-agent-v1"
+    provider: str = "unconfigured"
+    model_id: str = "qwen-plus"
     base_url: str = "https://api.example.invalid/v1"
     api_key: str | None = None
     max_steps: int = 8
@@ -135,7 +135,7 @@ class AgentSettings:
         return cls(**values)
 
     def validate(self):
-        if self.provider not in {"fake", "compatible"}:
+        if self.provider not in {"unconfigured", "compatible"}:
             raise ValueError("Invalid agent provider")
         for name in ("max_steps", "max_seconds", "max_tokens", "context_limit", "output_limit", "max_cost", "concurrency", "requests_per_minute", "approval_seconds"):
             if not math.isfinite(getattr(self, name)) or getattr(self, name) <= 0:

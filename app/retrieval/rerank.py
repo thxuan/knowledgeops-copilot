@@ -1,9 +1,8 @@
-"""Qwen-compatible /reranks adapter; Fake is only a lexical test double."""
+"""Qwen-compatible /reranks adapter."""
 from dataclasses import dataclass
 import math
 from typing import Protocol
 import httpx
-from app.retrieval.lexical import bm25
 
 
 @dataclass(frozen=True)
@@ -16,7 +15,7 @@ class RerankSettings:
     cost_per_million_tokens: float | None = None
 
     def validate(self):
-        if self.provider not in {"none", "fake", "compatible"}:
+        if self.provider not in {"none", "compatible"}:
             raise ValueError("Unsupported rerank provider")
         if not math.isfinite(self.timeout_seconds) or self.timeout_seconds <= 0:
             raise ValueError("Invalid rerank timeout")
@@ -31,7 +30,7 @@ class RerankSettings:
     @property
     def public_config(self):
         return {"provider": self.provider, "model_id": self.model_id if self.provider == "compatible"
-                else "fake-bm25-v1" if self.provider == "fake" else None,
+                else None,
                 "endpoint": self.endpoint if self.provider == "compatible" else "local",
                 "timeout_seconds": self.timeout_seconds,
                 "cost_per_million_tokens": self.cost_per_million_tokens}
@@ -71,14 +70,6 @@ def validate_result(result, count, bounded_scores=False):
         raise RerankError("Invalid rerank usage")
 
 
-class FakeRerankClient:
-    async def rerank(self, query, documents):
-        hits = [{"chunk_id": str(i), "title": "", "heading_paths": [], "text": text}
-                for i, text in enumerate(documents)]
-        scores = {int(h["chunk_id"]): h["score"] for h in bm25(query, hits, len(hits))}
-        return RerankResult([(i, scores.get(i, 0.0)) for i in range(len(hits))], 0, "fake-bm25-v1")
-
-
 class CompatibleRerankClient:
     def __init__(self, settings, transport=None):
         self.settings, self.transport = settings, transport
@@ -107,4 +98,4 @@ def make_rerank_client(settings):
     settings.validate()
     if settings.provider == "none":
         return None
-    return FakeRerankClient() if settings.provider == "fake" else CompatibleRerankClient(settings)
+    return CompatibleRerankClient(settings)

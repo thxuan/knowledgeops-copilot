@@ -29,6 +29,7 @@ from app.evals.rag import RecordingGeneration, digest, generation_cost, summariz
 from app.evals.retrieval import measure, validate_annotations
 from app.generation.context import SYSTEM_PROMPT, build_context
 from app.generation.models import GeneratedAnswer, GeneratedClaims, parse_generation
+from app.generation.review import REVIEW_PROMPT
 from app.generation.provider import make_generation_client
 from app.generation.service import ChatService, validation_code
 from app.retrieval.service import VectorService
@@ -67,9 +68,11 @@ def safe_config(settings, args):
                                   "generation_output": args.output_price,
                                   "embedding": settings.embedding.cost_per_million_tokens},
             "currency": args.currency, "prompt_sha256": digest(SYSTEM_PROMPT),
+            "review_prompt_sha256": digest(REVIEW_PROMPT),
+            "evidence_selection": "document-round-robin-v1",
             "schema_sha256": digest(GeneratedClaims.model_json_schema()),
             "response_schema_sha256": digest(GeneratedAnswer.model_json_schema()),
-            "generation_contract": "claims-v2-server-rendered-answer",
+            "generation_contract": "claims-v3-short-evidence-references",
             "code_and_data_sha256": fingerprint()}
 
 
@@ -133,7 +136,7 @@ def filter_checks(hits, identity, corpus, source_ids, filters=None):
 
 async def sampling(rows, settings, args, out):
     if settings.generation.provider != "compatible" or not settings.generation.model_id.startswith("qwen-plus"):
-        write_json(out / "sampling.json", {"status": "skipped", "reason": "This experiment validates qwen-plus parameters only; Fake has no sampling behavior."})
+        write_json(out / "sampling.json", {"status": "skipped", "reason": "This sampling experiment validates qwen-plus parameters only."})
         return
     ids = ["F005", "X001", "U001"]
     selected = [r for qid in ids for r in rows if r["question_id"] == qid and r["generation_calls"]]
@@ -190,7 +193,7 @@ async def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--database-url", default=None)
     parser.add_argument("--split", choices=("dev", "test"), default="dev")
-    parser.add_argument("--top-k", type=int, default=5)
+    parser.add_argument("--top-k", type=int, default=20)
     parser.add_argument("--sampling", action="store_true")
     parser.add_argument("--freeze-from", type=Path)
     parser.add_argument("--input-price", type=float)
@@ -224,6 +227,8 @@ async def main():
     settings = Settings.from_env()
     if not settings.vector_database_url:
         parser.error("Set KNOWLEDGEOPS_DATABASE_URL")
+    if settings.embedding.provider != "compatible" or settings.generation.provider != "compatible":
+        parser.error("Configure compatible Embedding and Generation providers")
     config = safe_config(settings, args)
     if args.split == "test":
         if not args.freeze_from:
@@ -239,7 +244,7 @@ async def main():
     manifest = {"run_id": run_id, "split": args.split, "config": config, "source_db": database_label(args.database_url or settings.database_url),
                 "status": "running", "git_commit": None,
                 "git_note": "Workspace has no Git repository; full source file SHA256 recorded instead.",
-                "scope": "Fake engineering baseline" if settings.generation.provider == "fake" else "real model RAG evaluation"}
+                "scope": "real model RAG evaluation"}
     write_json(out / "manifest.json", manifest)
     try:
         await run_evaluation(args, settings, corpus, questions, anchors, out, manifest)
@@ -291,6 +296,7 @@ async def run_evaluation(args, settings, corpus, questions, anchors, out, manife
             row["status"] = response["status"]
             context = build_context(q["question"], [], {}, result["hits"], settings.generation)
             row["input_evidence"] = context.evidence
+            row["input_evidence_metrics"] = measure(q, context.evidence, anchors, source_ids)
             ids = {h["chunk_id"] for h in context.evidence}
             row["citation_checks"] = [c["chunk_id"] in ids for c in response["citations"]]
             if row["status"] == "rejected":

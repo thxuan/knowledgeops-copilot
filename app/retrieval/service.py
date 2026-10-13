@@ -26,9 +26,7 @@ class VectorService:
                     result = await asyncio.wait_for(self.client.embed(texts), self.settings.timeout_seconds)
                     validate_result(result, self.settings, len(texts))
                     event.update(status="succeeded", total_tokens=result.total_tokens)
-                    if self.settings.provider == "fake":
-                        event["estimated_cost"] = 0.0
-                    elif result.total_tokens is not None and self.settings.cost_per_million_tokens is not None:
+                    if result.total_tokens is not None and self.settings.cost_per_million_tokens is not None:
                         event["estimated_cost"] = result.total_tokens / 1_000_000 * self.settings.cost_per_million_tokens
                 except TimeoutError:
                     failure = EmbeddingTransientError("Embedding timed out")
@@ -102,20 +100,29 @@ class VectorService:
 
     async def search(self, query, identity, top_k=5, mode="exact", ef_search=40, filters=None):
         started, run_id = time.perf_counter(), str(uuid4())
+        auth_started = time.perf_counter()
         allowed = await asyncio.to_thread(self.allowed_sets, identity, filters)
+        timings = {"vector_authorization": (time.perf_counter() - auth_started) * 1000, "embedding": 0.0, "vector_search": 0.0}
         hits = []
         if allowed:
+            embedding_started = time.perf_counter()
             vector = (await self._embed([query], run_id, 0, None, "query"))[0]
+            timings["embedding"] = (time.perf_counter() - embedding_started) * 1000
+            search_started = time.perf_counter()
             hits = await asyncio.to_thread(self.vectors.search, vector, allowed, identity.tenant_id, top_k, mode, ef_search)
+            timings["vector_search"] = (time.perf_counter() - search_started) * 1000
+            auth_started = time.perf_counter()
             current = {(a["document_id"], a["chunk_set_id"]) for a in
                        await asyncio.to_thread(self.allowed_sets, identity, filters)}
+            timings["vector_authorization"] += (time.perf_counter() - auth_started) * 1000
             old = {a["document_id"]: a["chunk_set_id"] for a in allowed}
             hits = [h for h in hits if (h["document_id"], old[h["document_id"]]) in current]
             for hit in hits:
                 hit["chunk_set_id"] = old[hit["document_id"]]
         return {"collection": self.settings.collection, "model_id": self.settings.model_id,
                 "dimensions": self.settings.dimensions, "mode": mode, "run_id": run_id,
-                "duration_ms": round((time.perf_counter() - started) * 1000, 3), "hits": hits}
+                "duration_ms": round((time.perf_counter() - started) * 1000, 3), "hits": hits,
+                "timings_ms": {k: round(v, 3) for k, v in timings.items()}}
 
     async def retrieve(self, query, identity, top_k=5, filters=None, mode="exact", ef_search=40):
         from dataclasses import asdict

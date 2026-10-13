@@ -7,7 +7,7 @@ import time
 from decimal import Decimal
 from pydantic import ValidationError
 from app.agent.contracts import SPECS, TOOLS, FINAL_REPAIR_PROMPT, parse_final, dump, event, redact, suspicious
-from app.agent.loop import CalculatorArguments, calculate
+from app.agent.calculator import CalculatorArguments, calculate
 from app.agent.provider import Retryable
 from app.core.errors import AppError
 

@@ -1,3 +1,4 @@
+from tests.doubles import LexicalRerankDouble
 """Day 9 rank fusion, provider contracts and failure boundaries."""
 import asyncio
 from dataclasses import replace
@@ -107,7 +108,7 @@ IDENTITY = LOCAL_IDENTITIES['u_engineer_001']
 def test_three_modes_share_candidates_keep_trace_and_leave_query_unchanged():
     async def run():
         vectors = VectorDouble()
-        service = RetrievalService(vectors, RetrievalSettings(candidate_k=2, rerank=RerankSettings(provider='fake')))
+        service = RetrievalService(vectors, RetrievalSettings(candidate_k=2, rerank=RerankSettings(provider='compatible', api_key='test-only', endpoint='https://rerank.test/v1/reranks', cost_per_million_tokens=0)), reranker=LexicalRerankDouble())
         query = 'TL-403 repaired'
         prepared = await service.prepare(query, IDENTITY, 2)
         results = {m: await service.finish(prepared, IDENTITY, 1, m) for m in ('vector', 'hybrid', 'hybrid_rerank')}
@@ -116,7 +117,7 @@ def test_three_modes_share_candidates_keep_trace_and_leave_query_unchanged():
         assert results['hybrid']['hits'][0]['chunk_id'] == 'good'
         assert results['hybrid_rerank']['hits'][0]['chunk_id'] == 'good'
         assert results['hybrid']['score_type'] == 'rrf'
-        assert results['hybrid_rerank']['score_type'] == 'fake_bm25'
+        assert results['hybrid_rerank']['score_type'] == 'rerank_relevance'
         d = results['hybrid_rerank']['diagnostics']
         assert d['candidate_count'] == 2 and d['final_count'] == 1
         assert d['original_query'] == query and not d['query_rewritten']
@@ -133,7 +134,7 @@ def test_rerank_failure_falls_back_with_unknown_cost(failure):
                     await asyncio.sleep(.1)
                 return RerankResult([(99, .9)])
         service = RetrievalService(VectorDouble(), RetrievalSettings(candidate_k=2,
-            rerank=RerankSettings(provider='fake', timeout_seconds=.001)), Broken())
+            rerank=RerankSettings(provider='compatible', api_key='test-only', endpoint='https://rerank.test/v1/reranks', cost_per_million_tokens=0, timeout_seconds=.001)), Broken())
         result = await service.retrieve('TL-403', IDENTITY, 1, strategy='hybrid_rerank')
         assert result['score_type'] == 'rrf'
         assert result['diagnostics']['rerank']['status'] == 'failed_fallback'
@@ -150,7 +151,7 @@ def test_permission_revoked_during_rerank_drops_returned_evidence():
                 vectors.allowed = []
                 return RerankResult([(i, 1.) for i in range(len(documents))])
         service = RetrievalService(vectors, RetrievalSettings(candidate_k=2,
-            rerank=RerankSettings(provider='fake')), Revoke())
+            rerank=RerankSettings(provider='compatible', api_key='test-only', endpoint='https://rerank.test/v1/reranks', cost_per_million_tokens=0)), Revoke())
         result = await service.retrieve('TL-403', IDENTITY, 1, strategy='hybrid_rerank')
         assert not result['hits'] and not result['diagnostics']['candidates']
         assert 'TL-403 repaired' not in json.dumps(result)
@@ -165,7 +166,7 @@ def test_empty_authorized_candidates_skip_rerank():
             async def rerank(self, *args):
                 raise AssertionError('Empty candidates must not call a model')
         service = RetrievalService(vectors, RetrievalSettings(candidate_k=2,
-            rerank=RerankSettings(provider='fake')), NeverCall())
+            rerank=RerankSettings(provider='compatible', api_key='test-only', endpoint='https://rerank.test/v1/reranks', cost_per_million_tokens=0)), NeverCall())
         result = await service.retrieve('TL-403', IDENTITY, 1, strategy='hybrid_rerank')
         assert result['hits'] == [] and result['diagnostics']['rerank']['status'] == 'empty'
     asyncio.run(run())

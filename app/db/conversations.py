@@ -124,3 +124,47 @@ class ConversationRepository:
             return {"conversation_id": conversation_id, "revision": row["revision"],
                     "summary": json.loads(row["summary"]), "messages": messages,
                     "next_after": messages[-1]["message_id"] if messages else after}
+
+
+    def attach_agent_turn(self, conversation_id, identity, message, run):
+        with self.ingestion.connection() as db:
+            self._owned(db, conversation_id, identity, lock=True)
+            exists = db.execute("SELECT 1 FROM conversation_messages WHERE conversation_id=%s AND payload::jsonb->>'agent_run_id'=%s", (conversation_id, run["run_id"])).fetchone()
+            if exists:
+                return
+            now = time.time()
+            for role, content in [("user", message), ("assistant", "任务正在执行。")]:
+                db.execute("INSERT INTO conversation_messages (conversation_id,role,content,payload,created_at) VALUES (%s,%s,%s,%s,%s)",
+                    (conversation_id, role, content, dump({"agent_run_id": run["run_id"], "status": "running"}), now))
+            db.execute("UPDATE conversations SET revision=revision+1, updated_at=%s WHERE conversation_id=%s", (now, conversation_id))
+
+    def sync_agent_turns(self, conversation_id, identity, require_finished=True):
+        with self.ingestion.connection() as db:
+            self._owned(db, conversation_id, identity, lock=True)
+            rows = db.execute("SELECT message_id,payload FROM conversation_messages WHERE conversation_id=%s AND role='assistant' AND payload::jsonb ? 'agent_run_id'", (conversation_id,)).fetchall()
+            changed = False
+            for row in rows:
+                payload = json.loads(row["payload"])
+                run = db.execute("SELECT state FROM ko_agent_runs WHERE run_id=%s AND tenant_id=%s AND user_id=%s", (payload["agent_run_id"],identity.tenant_id,identity.user_id)).fetchone()
+                if not run:
+                    continue
+                state = run["state"]
+                if state["status"] not in {"completed", "failed", "cancelled"}:
+                    if require_finished:
+                        raise AppError("ACTIVE_TASK", "请先完成或取消当前会话中未结束的任务。", 409)
+                    continue
+                if payload.get("status") == state["status"]:
+                    continue
+                # Preserve evidence lineage for later history ACL checks.
+                citations = []
+                for trace in state.get("trace", []):
+                    result = trace.get("result") or {}
+                    for hit in result.get("untrusted_evidence", []) if isinstance(result, dict) else []:
+                        if hit.get("citation"):
+                            citations.append(hit["citation"])
+                payload.update(status=state["status"], _evidence=citations)
+                answer = state.get("answer") or ("任务已取消。" if state["status"] == "cancelled" else "任务执行失败：" + str(state.get("outcome", "未知错误")))
+                db.execute("UPDATE conversation_messages SET content=%s,payload=%s WHERE message_id=%s", (answer,dump(payload),row["message_id"]))
+                changed = True
+            if changed:
+                db.execute("UPDATE conversations SET revision=revision+1,updated_at=%s WHERE conversation_id=%s", (time.time(),conversation_id))

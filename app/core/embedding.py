@@ -1,8 +1,6 @@
-"""Embedding adapters; the deterministic Fake has no learned semantics."""
+"""Real embedding adapter with an explicit unconfigured state."""
 from dataclasses import dataclass
-import hashlib
 import math
-import re
 from typing import Protocol
 import httpx
 
@@ -14,10 +12,10 @@ class EmbeddingTransientError(EmbeddingError):
 
 @dataclass(frozen=True)
 class EmbeddingSettings:
-    provider: str = "fake"
-    model_id: str = "fake-hash-v1"
+    provider: str = "unconfigured"
+    model_id: str = "text-embedding-v4"
     dimensions: int = 128
-    collection: str = "day5-fake"
+    collection: str = "knowledgeops-v1"
     base_url: str = "https://api.example.invalid/v1"
     api_key: str | None = None
     batch_size: int = 16
@@ -27,7 +25,7 @@ class EmbeddingSettings:
     cost_per_million_tokens: float | None = None
 
     def validate(self):
-        if self.provider not in {"fake", "compatible"}:
+        if self.provider not in {"unconfigured", "compatible"}:
             raise ValueError("Unsupported embedding provider")
         if not self.model_id or not self.collection or not 1 <= self.dimensions <= 2000:
             raise ValueError("Invalid embedding model/collection/HNSW dimension")
@@ -37,8 +35,6 @@ class EmbeddingSettings:
             raise ValueError("Invalid timeout/retry limit")
         if self.cost_per_million_tokens is not None and (not math.isfinite(self.cost_per_million_tokens) or self.cost_per_million_tokens < 0):
             raise ValueError("Invalid embedding price")
-        if self.provider == "fake" and self.model_id != "fake-hash-v1":
-            raise ValueError("Fake model ID is fixed")
         if self.provider == "compatible" and not self.api_key:
             raise ValueError("Compatible embedding adapter needs an API key")
 
@@ -70,26 +66,6 @@ def validate_result(result, settings, count):
     if result.total_tokens is not None and (type(result.total_tokens) is not int or result.total_tokens < 0):
         raise EmbeddingError("Invalid token usage")
 
-class FakeEmbeddingClient:
-    def __init__(self, settings):
-        self.settings = settings
-
-    async def embed(self, texts):
-        vectors = []
-        for text in texts:
-            tokens = re.findall(r"[a-z0-9]+(?:[-_.][a-z0-9]+)*", text.lower())
-            for run in re.findall(r"[\u4e00-\u9fff]+", text):
-                tokens.extend(run[i:i + 2] for i in range(max(1, len(run) - 1)))
-            vector = [0.0] * self.settings.dimensions
-            for token in tokens or ["<empty>"]:
-                digest = hashlib.sha256(token.encode()).digest()
-                vector[int.from_bytes(digest[:4], "big") % len(vector)] += 1 if digest[4] % 2 else -1
-            norm = math.hypot(*vector)
-            if norm == 0:
-                vector[0], norm = 1.0, 1.0
-            vectors.append([x / norm for x in vector])
-        return EmbeddingResult(self.settings.model_id, vectors, 0)
-
 class CompatibleEmbeddingClient:
     def __init__(self, settings):
         self.settings = settings
@@ -117,8 +93,12 @@ class CompatibleEmbeddingClient:
 
 def make_embedding_client(settings):
     settings.validate()
-    return FakeEmbeddingClient(settings) if settings.provider == "fake" else CompatibleEmbeddingClient(settings)
+    return UnconfiguredEmbeddingClient() if settings.provider == "unconfigured" else CompatibleEmbeddingClient(settings)
 
 def chunk_input(chunk):
     headings = "\n".join(" > ".join(path) for path in chunk["heading_paths"])
     return chunk["title"] + "\n" + headings + "\n" + chunk["text"]
+
+class UnconfiguredEmbeddingClient:
+    async def embed(self, texts):
+        raise EmbeddingError('请先配置真实 Embedding 模型。')
