@@ -42,6 +42,8 @@ flowchart LR
 
 按 **连接设置 → 知识库 → 会话与评测** 的顺序操作。需要 Python 3.11+（建议 3.12）和 Docker Compose；仓库提供的 PostgreSQL 17 镜像已安装 pgvector 0.8.0，前端由 FastAPI 同源提供，无需单独构建。
 
+以下截图展示操作位置，文档数量、模型单价与评测指标以自己的配置和实际运行为准。
+
 ### 1. 安装并启动
 
 从项目根目录执行：
@@ -66,6 +68,8 @@ python scripts/workbench.py
 
 在“数据库与空间”填写连接信息，选择已经初始化的 schema，然后检测连接。使用仓库 Compose 时，默认配置为：
 
+![连接设置页面与数据库空间入口](docs/images/quickstart/connection-settings.png)
+
 | 配置项 | 值 |
 | --- | --- |
 | 主机 / 端口 | `127.0.0.1` / `55432` |
@@ -79,15 +83,21 @@ python scripts/workbench.py
 
 Rerank 为可选项，配置并测试后，可在会话的运行参数中按次启用。最后点击 **“应用连接配置”**，保存数据库、Embedding 与 Rerank 配置。
 
+![应用数据库、Embedding 与可选 Rerank 配置](docs/images/quickstart/apply-connections.png)
+
 ### 3. 配置回答与任务模型
 
 仍在连接设置页，进入“回答与任务模型”，填写生成模型的 Base URL、模型 ID 和 API Key，点击 **“测试连接” → “保存模型”**。此配置独立保存，不会改变 Embedding 或已有索引。
 
 仅运行知识问答时，模型单价可留空；使用 Agent 查询业务或创建工单时，需要按供应商实际价格填写输入、输出单价，以启用费用预算。Agent 业务数据与只读连接的准备见 [API 演示](docs/demo.md)。
 
+![回答与任务模型的连接测试和保存入口](docs/images/quickstart/model-settings.png)
+
 ### 4. 检查文档、预览切分并构建索引
 
 进入 [知识库](http://127.0.0.1:8000/knowledge)，查看当前身份可见的文档和索引状态。
+
+![知识库已就绪及已索引文档状态](docs/images/quickstart/knowledge-ready.png)
 
 - **已有样例索引：** 无需重复上传或重新 Embedding。模型配置完成后刷新状态，页面显示“知识库已就绪”即可进入会话与评测。
 - **自己的文档：** 点击“上传文档”，可批量选择 UTF-8 Markdown / TXT；等待解析完成后查看原文。切分方式支持“按标题与段落”和“固定长度”，可设置切块字符数与重叠字符数，先“预览切分”，再“构建索引”。上传本身不会自动计算向量。
@@ -95,11 +105,17 @@ Rerank 为可选项，配置并测试后，可在会话的运行参数中按次�
 
 索引完成后刷新状态，确认当前身份有已索引文档。文档、切块和索引保存在数据库中。
 
+![文档列表、切分参数与切块预览](docs/images/quickstart/chunk-preview.png)
+
 ### 5. 自由提问或导入测试集
 
 进入 [会话与评测](http://127.0.0.1:8000/)，选择演示身份。先打开 **“运行参数”**，按需要设置检索通道开关、各路候选数、融合与证据数量，以及生成模型的 Temperature、Top-P 等参数。
 
+![演示身份、运行参数与运行详情入口](docs/images/quickstart/run-controls.png)
+
 **自由提问：** 在“会话”视图直接输入问题。“自动”模式可处理知识问答与 Agent 任务；自由提问显示耗时、用量和证据等运行信息，不计算依赖标注的质量指标。
+
+![统一会话中的自由提问入口](docs/images/quickstart/conversation.png)
 
 **批量评测：** 切换到“评测与记录”，选择“导入测试集（JSONL）…”，上传题目文件并点击“校验并导入”。可以使用仓库的 [questions.jsonl](eval_data/questions.jsonl)，需要章节精确率和覆盖率时，同时导入 [day4-source-spans.jsonl](eval_data/day4-source-spans.jsonl)。选择 `dev` 等测试范围后，点击“开始评测”。题目按当前身份过滤，标注的文档来源和版本需与知识库匹配。
 
@@ -109,7 +125,11 @@ Rerank 为可选项，配置并测试后，可在会话的运行参数中按次�
 
 点击 **“运行详情”** 查看答案、阶段耗时、实际引用和检索证据；在“运行记录”中选择具体题目，可查看对应结果，也可比较 A/B 或导出 JSON。
 
+![运行详情中的答案、检索证据与指标](docs/images/quickstart/run-details.png)
+
 来源召回和跨文档完整性需要测试集的来源标注，章节精确率和字符覆盖需要章节坐标；缺失标注时显示“未评测”。**答案正确性仍需人工评审，检索召回率不能直接当作答案准确率。**
+
+![批量评测汇总、逐题记录与 JSON 导出入口](docs/images/quickstart/evaluation-records.png)
 
 评测记录自动保存在当前浏览器中，按身份、数据库、schema 和集合隔离。连接信息与 Key 默认只保存在当前服务进程内存中，服务重启后需重新配置，或通过环境变量加载；`.env.example` 是参考文件，启动脚本不会自动加载它。测试连接、语义检索和生成答案会发出真实模型请求。
 
