@@ -1,0 +1,44 @@
+{
+  "validated_on": "2026-10-14",
+  "clone_commit": "f1a146ffbb39102701a1d96ee047f82ba05014e7",
+  "python": "3.12.4",
+  "platform": "win32",
+  "real_provider_calls": 0,
+  "pip_check": "No broken requirements found.",
+  "postgresql": "17.6 (Debian 17.6-1.pgdg12+1)",
+  "empty_database_startup_and_upload": "passed",
+  "unconfigured_model_guard": "passed",
+  "pages_and_static_assets": "passed",
+  "sample_backup_restore_and_config_binding": "passed",
+  "authorized_bm25_retrieval": "passed",
+  "jsonl_import": "passed",
+  "python_tests": {
+    "passed": 334,
+    "failed": 0
+  },
+  "javascript_tests": {
+    "passed": 7,
+    "failed": 0
+  },
+  "dependency_lock_sha256": "f52e0e09489966743110c1b31931892fa90daa1671513101b0db33ecad42045f",
+  "backup_sha256": "7c5836bd35a509997f5ba371dfc72f6991622effbfec255f6e4182beb389e8fa",
+  "docker_default_entrypoint": "python -m uvicorn app.main:app (obsolete demo.py fixed)",
+  "limits": [
+    "Validated on Windows with Python 3.12 and existing PostgreSQL 17 service, using fresh isolated databases.",
+    "No Docker image build or cross-platform runtime validation in this run.",
+    "No real provider call or answer-quality validation; visitors must supply valid model connections."
+  ],
+  "dependency_installation": {
+    "environment": "new virtual environment on D drive",
+    "source": "https://pypi.org/simple",
+    "lock": "requirements.lock",
+    "result": "passed"
+  },
+  "database_isolation": "Three fresh temporary databases on the existing Compose PostgreSQL service; removed after validation.",
+  "restored_sample": {
+    "documents": 14,
+    "chunks": 100,
+    "vectors": 100,
+    "engineer_visible_documents": 13
+  }
+}
