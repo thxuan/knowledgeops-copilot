@@ -1,0 +1,29 @@
+{
+  "validated_on": "2026-10-14",
+  "kind": "offline_engineering_regression",
+  "application_source_commit": "d86cc76b1e8450c15188a56c983666c2f3304c15",
+  "python": {
+    "command": "python scripts/run_tests.py -o addopts= -q",
+    "passed": 336,
+    "failed": 0,
+    "skipped": 0
+  },
+  "javascript": {
+    "command": "node --test tests/unit/*.mjs",
+    "passed": 7,
+    "failed": 0
+  },
+  "database": "isolated temporary PostgreSQL schema with pgvector",
+  "real_provider_calls": 0,
+  "browser_checks": [
+    "desktop knowledge management",
+    "390px upload dialog",
+    "bulk selection and build dialog",
+    "unconfigured embedding feedback"
+  ],
+  "limitations": [
+    "Engineering behavior only; no real-model quality score.",
+    "Counts come from the recorded regression run; documentation updates do not constitute another run.",
+    "Remote GitHub Actions results are not claimed by this summary."
+  ]
+}

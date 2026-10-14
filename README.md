@@ -50,7 +50,7 @@ flowchart TB
 
     V --> O[答案或任务结果]
     A -->|任务结束| O
-    DB[(PostgreSQL + pgvector)] -.授权证据.-> R
+    DB[(PostgreSQL（含 pgvector 扩展）)] -.授权证据.-> R
     T -.授权业务读取.-> DB
     W --> DB
     A -.持久化检查点.-> DB
@@ -65,11 +65,11 @@ flowchart TB
 flowchart LR
     D[授权上传文档] --> P[解析与切分]
     P --> E[Embedding 模型：生成文档向量]
-    E --> DB[(PostgreSQL + pgvector<br/>保存文档、切块与向量索引)]
+    E --> DB[(PostgreSQL（含 pgvector 扩展）<br/>保存文档、切块与向量索引)]
 ```
 
 
-详见 [架构与设计取舍](docs/design.md)。本地配套目录 `../knowledgeops-architecture/index.html` 中的 HTML 架构导航 包含 16 个节点、代码入口和中英术语；下载仓库后用浏览器打开，或在父目录运行 `python -m http.server 8765`，访问 `http://127.0.0.1:8765/knowledgeops-architecture/`。GitHub 文件预览不会直接运行 HTML。
+当前流程、事务与检索策略见 [架构与设计取舍](docs/design.md)，全部使用与维护资料见 [文档目录](docs/README.md)。
 
 ## 快速开始
 
@@ -198,13 +198,4 @@ node --test tests/unit/*.mjs
 - SSE 发送已校验答案的文本事件，未实现上游 Token 流式输出，也未验证真实 TTFT。
 - 结构与引用校验不能保证语义正确。真实模型有历史验证与小样本评测，但完整 Agent 质量、云并发和生产稳定性尚未验证。
 
-阶段学习笔记、面试记录和历史实验已迁移到 本地架构项目的 `../knowledgeops-architecture/learning-records/copilot/`。数据库与索引数据未删除。SQLite 只用于可选的一次性旧数据导入，不参与当前运行。
-
-## 跨文档修复（2026-10-12）
-
-问答默认证据窗口20、文档轮流进入预算、短引用映射，默认保留自然语言generated回答。此前将grounded原文摘录设为默认偏离了跨文档引用优化范围，已按用户纠正恢复。历史278项测试与原文模式5题回归保留，但不能作为自然语言结论与引用语义正确的证明。必要来源覆盖改善已测得，语义引用绑定尚未完成验收，详见[修复与验证记录](docs/cross-document-fix.md)。历史Top5评测保留，新独立测试仍待准备。
-
-
-### 跨文档证据选择与多查询试验
-
-新增 `retrieval_profile`：`ranked`（默认）、`coverage`（只改证据选择）、`multi_query`（短模型拆分后分别检索并覆盖选择）。`/chat`默认仍为ranked+Top20；试验可显式设置 `top_k: 8, retrieval_profile: "multi_query"`。真实开发集同窗口Top8对照中必要来源覆盖1/3→3/3，17题平均章节覆盖90.6%→95.1%；没有最终答案或引用语义正确性成绩。规划和补充检索增加费用与延迟，输入减少不等于总费用下降。实现、失败试验、完整对照和调用方式见 [证据选择试验](docs/evidence-selection.md)。
+历史需求、阶段笔记、面试记录与试验过程已归档到本地配套项目 `knowledgeops-architecture/learning-records/copilot/`；主仓库文档描述当前功能与验证范围。旧 SQLite 数据的可选导入见 [维护说明](docs/maintenance/postgresql-migration.md)。

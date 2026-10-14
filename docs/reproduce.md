@@ -16,7 +16,7 @@ docker compose -f docker-compose.yml -f docker-compose.demo.yml up --build -d --
 
 ```sh
 python scripts/run_tests.py -q
-node --test tests/unit/test_experiment_cache.mjs
+node --test tests/unit/*.mjs
 ```
 
 测试入口在独立随机 schema 中准备数据库集成测试和只读业务账号，完成后只删除该临时 schema。数据库账号需有创建 schema、扩展和本地测试角色的权限。可通过 `KNOWLEDGEOPS_TEST_DATABASE_URL` 指定测试数据库。离线测试不调用付费模型。
@@ -29,3 +29,8 @@ node --test tests/unit/test_experiment_cache.mjs
 ## 使用预计算样例数据库
 
 首次克隆可按 [样例备份说明](../sample_data/backups/README.md) 恢复 `ko_samples`，再配置自己的生成模型与 Embedding Key，直接运行配套 JSONL 评测。恢复工具会拒绝已有同名 schema，并校验文档、权限、切块和真实向量；不覆盖本地现有知识库。
+
+
+## 可选维护
+
+首次安装不需要旧 SQLite 数据。只有迁移历史本地数据时，按 [SQLite 导入说明](maintenance/postgresql-migration.md) 操作；目标核心表必须为空。

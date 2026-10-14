@@ -9,12 +9,32 @@
 | 流程 | 执行顺序 | 关键入口 |
 | --- | --- | --- |
 | 文档 | 上传→去重→原始字节落库→worker 解析清洗→显式切块→Embedding→索引发布 | app/ingestion/service.py、worker.py、app/db/chunks.py、app/retrieval/service.py |
-| 问答 | 服务端身份→当前可见集合→向量/BM25→RRF→可选 Rerank→上下文→claims→引用与授权复核→会话提交 | app/retrieval/pipeline.py、app/generation/service.py、app/db/conversations.py |
+| 问答 | 服务端身份→当前可见集合→向量/BM25→RRF→可选 Rerank→上下文→真实模型生成 claims→引用与授权复核→会话提交 | app/retrieval/pipeline.py、app/generation/service.py、app/db/conversations.py |
 | Agent | 创建幂等任务→租约认领→模型提出工具→Schema/授权校验→执行回填→审批或最终回答→检查点 | app/agent/service.py、app/db/agent.py |
+
+## 统一会话与模型调用
+
+工作台自动模式先用真实聊天模型识别意图，知识问题进入 RAG，业务查询、计算与工单请求进入持久化 Agent。“仅问答”模式和批量评测直接进入 RAG。正常问答在检索后调用聊天模型生成答案；Agent 调用模型规划工具、接收执行结果并组织最终输出。没有可用证据时，问答可以在生成前拒答。
+
+文档和问题向量化由 Embedding 模型完成；BM25、RRF、权限检查与事务提交由程序完成，可选 Rerank 使用单独的重排适配器。模型单价用于 Agent 的费用预算校验，不决定供应商是否对问答请求收费。
+
+## 检索与证据选择
+
+检索通道可分别控制语义与关键词召回，双路开启时使用 RRF 融合，之后按配置重排。候选数、融合保留数、证据窗口、上下文预算与生成采样参数均是不同的控制项。
+
+| retrieval_profile | 当前行为 |
+| --- | --- |
+| `ranked` | 默认单查询排序；具体证据窗口由请求或工作台预设决定 |
+| `coverage` | 单查询召回后，在同一候选池中去重，并兼顾查询词覆盖与来源多样性选择证据 |
+| `multi_query` | 真实模型生成有界的互补子查询，各查询沿用身份和过滤器，召回结果融合后选择覆盖证据 |
+
+查询规划非法、超时或部分补充检索失败时可退回原查询；规划不会授予权限。来源多样性不代表语义完整性，运行时不读取测试集标准答案来选择证据。
+
+上下文使用短引用编号映射到真实切块，按完整片段处理预算并记录遗漏。默认生成自然语言答案，可配置用同一批证据复核草稿；复核与格式修复共享有界调用次数。`grounded` 为可选原文摘录模式，不作为默认回答方式。引用属于授权集合、可以定位，不等于每句事实都被来源支持，最终语义仍需评审。
 
 ## 存储与一致性
 
-统一 PostgreSQL。documents、document_access、ingestion_jobs/events 保存文档事实与 ACL；chunk_sets/chunks/document_chunk_heads 保存完整切块集合与当前指针；conversations/messages 保存用户会话。ko_* 向量表管理模型签名与发布快照，ko_agent_* 管理任务、审批动作、工单和模拟业务。
+默认使用一个 PostgreSQL 数据库，pgvector 是安装在其中的向量扩展，不是第二个数据库。documents、document_access、ingestion_jobs/events 保存文档事实与 ACL；chunk_sets/chunks/document_chunk_heads 保存完整切块集合与当前指针；conversations/messages 保存用户会话。ko_* 向量表管理模型签名与发布快照，ko_agent_* 管理任务、审批动作、工单和模拟业务。
 
 每次 Embedding 网络请求都在事务外完成，全部结果准备好后再事务发布向量头。文档 revision 与 chunk_set_id 防止旧内容成为有效证据；检索后、生成后分别复核授权。文档更新立即使旧头失效，新索引准备期间暂时不可检索。统一数据库不代表所有阶段使用一个长事务。
 
@@ -34,7 +54,7 @@
 | 混合检索 | 向量补语义，BM25 补编号与术语；RRF 融合排名而非直接加不同量纲的分数 |
 | exact / HNSW | 精确检索用于基线；近似索引取舍速度与召回，小数据结果不代表大规模性能 |
 | 单 Agent、自写循环 | 工具数量和任务范围有限，可直接控制协议、状态、预算、审批；复杂任务扩展需要新评测依据 |
-| PostgreSQL + pgvector | 文档、权限、会话、向量与业务状态集中管理；仍需明确事务边界和数据库角色 |
+| PostgreSQL（含 pgvector 扩展） | 文档、权限、会话、向量与业务状态集中管理；仍需明确事务边界和数据库角色 |
 | 真实适配器 + 测试替身 | 运行时使用真实模型适配器；替身仅存在于 tests 中验证控制流，不能推断真实质量 |
 
 ## 安全边界
@@ -43,4 +63,4 @@
 
 当前身份头只是本地测试映射，生产认证、部署密钥管理、监控告警和备份恢复仍需完善。不要把演示直接作为面向公网的生产服务。
 
-详细代码入口见 [交互式架构导航](../../knowledgeops-architecture/index.html)，ID、键和约束见 [字段与机制整理](../../knowledgeops-architecture/learning-records/copilot/docs/architecture/identifiers-and-constraints.md)。
+参数和配置方法见 [工作台说明](workbench.md)，当前测试与质量指标口径见 [验证说明](verification.md)。历史试验和早期架构材料保存在本地配套的 knowledgeops-architecture 学习记录中。
