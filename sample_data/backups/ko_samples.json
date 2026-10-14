@@ -1,0 +1,58 @@
+{
+  "format": "postgresql-custom",
+  "schema": "ko_samples",
+  "exported_at": "2026-10-14T00:09:58.947514+00:00",
+  "postgresql_major": 17,
+  "pgvector_version": "0.8.0",
+  "collection": "bailian-v4-1024-validation-v1",
+  "embedding": {
+    "distance": "cosine",
+    "endpoint": "https://workspace.example.invalid/compatible-mode/v1",
+    "model_id": "text-embedding-v4",
+    "provider": "compatible",
+    "dimensions": 1024,
+    "input_format": "title-heading-text-v1"
+  },
+  "embedding_region": "China (Beijing)",
+  "counts": {
+    "documents": 14,
+    "document_access": 38,
+    "ingestion_jobs": 14,
+    "chunk_sets": 14,
+    "chunks": 100,
+    "document_chunk_heads": 14,
+    "ko_collections": 1,
+    "ko_documents": 14,
+    "ko_chunks": 100,
+    "ko_embeddings": 100,
+    "ko_vector_heads": 14
+  },
+  "archive_bytes": 594817,
+  "sha256": "7c5836bd35a509997f5ba371dfc72f6991622effbfec255f6e4182beb389e8fa",
+  "excluded": [
+    "conversations",
+    "conversation_messages",
+    "agent state and business tables",
+    "ingestion_events",
+    "ko_embedding_batches",
+    "fake and unconfigured collections",
+    "source workspace endpoint",
+    "database owners and grants"
+  ],
+  "sample_sha256": {
+    "01-it-service-catalog.md": "188be1def373ad92913ef07e29107403da984ae4b6e7b74f8f2420a364caed66",
+    "02-account-sso-mfa.md": "c5ea14409be781f4726d23948bac204f5042986049adca35791593960af8a298",
+    "03-tidelink-vpn-guide.md": "33113d14390cfa9b801909be33b00c7d1e885bd0670df7d27430ef2f0e1865a7",
+    "04-endpoint-compliance.md": "b2257bb09be5037f543e05a01604409bb16654675c8287e443568a2ce1448cbc",
+    "05-email-and-files.md": "936e4b8428830f17f8579292bb9edd1e00b0ba221a6032b797bf330727e22f82",
+    "06-engineering-access.md": "edfa1003740631bf271315f5ff75683c86e71ef693d8d9deb9bc003857e83a12",
+    "07-incident-priority-and-escalation.md": "92703c61d028411fa3cafedb37be3cce4ed0db8582ec7baa4756045c0748e68a",
+    "08-backup-and-restore.md": "e5dd50e54251faa5aeecc710c243aa1dee9fcf56a5f4dfdc68bea8fe641e37a3",
+    "09-data-classification.md": "5de8e5e9312fb5c1229f91ed865e019392d27a47cd5dc12360945975dd1bf8ef",
+    "10-remote-work-and-travel.md": "cf74eed851e60ebaf963ecafd8f5fdb94ec17bccf12e6589007f9d7a6a36cc2c",
+    "11-common-errors.md": "249d629e6af0ad33cba8c3078c72c2ae20db03d4e9abaefdf74147bd2dcef20c",
+    "12-device-lifecycle.md": "d93e0ec2ca84bdd29ff833714acf436053808793f92d673c181ca72a1d1da345",
+    "13-maintenance-calendar.md": "bb5d022f275ad14fb5fe27f6cb5a3c039d1623dbe84b20aed9f74d3ced3983b4",
+    "14-onboarding-and-offboarding.md": "a3c3186c248f062a0582b98e73c47d27e467b960900ec1052718537efcadb195"
+  }
+}

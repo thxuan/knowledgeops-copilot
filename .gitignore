@@ -44,3 +44,6 @@ Thumbs.db
 
 docs/architecture.md
 docs/interview-oral*.md
+
+# Reviewed, sanitized sample snapshot for quick-start restoration
+!sample_data/backups/ko_samples.dump

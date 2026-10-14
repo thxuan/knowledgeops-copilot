@@ -57,6 +57,8 @@ python scripts/workbench.py
 
 批量任务按文档顺序执行，默认跳过当前集合的有效索引；重建需显式勾选。支持停止后续任务和失败项重试，执行期间需保持页面打开，已完成的文档与索引保存在数据库。
 
+首次体验可直接恢复已预计算真实向量的 [ko_samples 样例数据库备份](sample_data/backups/README.md)，省去文档导入和批量 Embedding。备份要求 PostgreSQL 17 + pgvector 0.8.0，以及北京区域 `text-embedding-v4`、1024 维；恢复后仍需配置自己的模型 Key。已有本地 `ko_samples` 无需恢复。
+
 详见 [工作台说明](docs/workbench.md)、[复现指南](docs/reproduce.md) 与 [API 演示](docs/demo.md)。
 
 ## 自动化验证

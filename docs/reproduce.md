@@ -24,3 +24,8 @@ node --test tests/unit/test_experiment_cache.mjs
 ## 包源访问失败
 
 可为本次安装显式指定 `pip --index-url`，无需修改全局配置。查看容器日志使用 `docker compose -f docker-compose.yml -f docker-compose.demo.yml logs app`。停止服务使用同一 Compose 配置的 `down`；保留数据卷即可保留文档和索引。
+
+
+## 使用预计算样例数据库
+
+首次克隆可按 [样例备份说明](../sample_data/backups/README.md) 恢复 `ko_samples`，再配置自己的生成模型与 Embedding Key，直接运行配套 JSONL 评测。恢复工具会拒绝已有同名 schema，并校验文档、权限、切块和真实向量；不覆盖本地现有知识库。

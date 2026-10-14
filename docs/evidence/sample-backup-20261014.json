@@ -1,0 +1,30 @@
+{
+  "existing_schema_guard": "passed",
+  "wrong_model_endpoint_guard": "passed",
+  "checksum_guard": "passed",
+  "restore_transaction_rollback": "passed",
+  "bm25_api_and_identity_acl": "passed",
+  "stored_real_vector_nearest_neighbor": "passed",
+  "source_database_unchanged": "passed",
+  "documents": 14,
+  "chunks": 100,
+  "real_embeddings": 100,
+  "model_api_calls": 0,
+  "archive_sha256": "7c5836bd35a509997f5ba371dfc72f6991622effbfec255f6e4182beb389e8fa",
+  "archive_bytes": 594817,
+  "exported_tables": [
+    "chunk_sets",
+    "chunks",
+    "document_access",
+    "document_chunk_heads",
+    "documents",
+    "ingestion_jobs",
+    "ko_chunks",
+    "ko_collections",
+    "ko_documents",
+    "ko_embeddings",
+    "ko_vector_heads"
+  ],
+  "final_archive_roundtrip": "passed",
+  "archive_sensitive_state_exclusion": "passed"
+}
