@@ -1,17 +1,18 @@
 {
   "validated_on": "2026-10-14",
   "kind": "offline_engineering_regression",
-  "application_source_commit": "d86cc76b1e8450c15188a56c983666c2f3304c15",
   "python": {
     "command": "python scripts/run_tests.py -o addopts= -q",
-    "passed": 336,
+    "passed": 334,
     "failed": 0,
-    "skipped": 0
+    "skipped": 0,
+    "duration_seconds": 110.84
   },
   "javascript": {
     "command": "node --test tests/unit/*.mjs",
     "passed": 7,
-    "failed": 0
+    "failed": 0,
+    "scope": "Frontend unchanged; result retained from earlier validation on the same day."
   },
   "database": "isolated temporary PostgreSQL schema with pgvector",
   "real_provider_calls": 0,
@@ -25,5 +26,11 @@
     "Engineering behavior only; no real-model quality score.",
     "Counts come from the recorded regression run; documentation updates do not constitute another run.",
     "Remote GitHub Actions results are not claimed by this summary."
-  ]
+  ],
+  "application_base_commit": "c9abbad28af491ec4ed8d08f1dc08d688aa16aa3",
+  "changes_since_base": [
+    "Remove retired import utility and its two tests",
+    "Clarify unsupported database-path configuration error"
+  ],
+  "config_sha256": "c4b8495e32af8cfd33298ea33c8cdd9932ce8d068753125eb0ae6bac58c2cb86"
 }

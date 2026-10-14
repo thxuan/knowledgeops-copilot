@@ -29,8 +29,3 @@ node --test tests/unit/*.mjs
 ## 使用预计算样例数据库
 
 首次克隆可按 [样例备份说明](../sample_data/backups/README.md) 恢复 `ko_samples`，再配置自己的生成模型与 Embedding Key，直接运行配套 JSONL 评测。恢复工具会拒绝已有同名 schema，并校验文档、权限、切块和真实向量；不覆盖本地现有知识库。
-
-
-## 可选维护
-
-首次安装不需要旧 SQLite 数据。只有迁移历史本地数据时，按 [SQLite 导入说明](maintenance/postgresql-migration.md) 操作；目标核心表必须为空。

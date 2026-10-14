@@ -198,4 +198,4 @@ node --test tests/unit/*.mjs
 - SSE 发送已校验答案的文本事件，未实现上游 Token 流式输出，也未验证真实 TTFT。
 - 结构与引用校验不能保证语义正确。真实模型有历史验证与小样本评测，但完整 Agent 质量、云并发和生产稳定性尚未验证。
 
-历史需求、阶段笔记、面试记录与试验过程已归档到本地配套项目 `knowledgeops-architecture/learning-records/copilot/`；主仓库文档描述当前功能与验证范围。旧 SQLite 数据的可选导入见 [维护说明](docs/maintenance/postgresql-migration.md)。
+历史需求、阶段笔记、面试记录与试验过程已归档到本地配套项目 `knowledgeops-architecture/learning-records/copilot/`；主仓库文档描述当前功能与验证范围。

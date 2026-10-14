@@ -9,7 +9,6 @@
 | [架构与设计取舍](design.md) | 模型调用、单库存储、检索策略、事务、权限与执行边界 |
 | [API 演示](demo.md) | 接口调用、文档流程、Agent 业务准备、只读工具与人工审批 |
 | [验证证据与能力边界](verification.md) | 当前工程验证、备份恢复验证、指标口径和尚未验证的范围 |
-| [旧 SQLite 数据导入](maintenance/postgresql-migration.md) | 可选维护步骤；首次安装不需要 |
 | [样例数据库备份](../sample_data/backups/README.md) | ko_samples 恢复条件、模型兼容要求与恢复命令 |
 
 `images/quickstart/` 保存首页使用的操作截图。`evidence/` 只保存当前保留功能的工程验证汇总；这些文件不会作为模型输入，也不是最终答案准确率成绩。

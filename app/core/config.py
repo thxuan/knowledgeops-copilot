@@ -96,7 +96,7 @@ class Settings:
         if not self.database_url:
             raise ValueError("Configure KNOWLEDGEOPS_DATABASE_URL")
         if os.getenv("KNOWLEDGEOPS_INGESTION_DB_PATH"):
-            raise ValueError("SQLite configuration is retired; migrate the file and use KNOWLEDGEOPS_DATABASE_URL")
+            raise ValueError("KNOWLEDGEOPS_INGESTION_DB_PATH is unsupported; use PostgreSQL via KNOWLEDGEOPS_DATABASE_URL")
         for url in (self.vector_database_url, self.agent.database_url, self.agent.business_database_url):
             if url and database_identity(url) != database_identity(self.database_url):
                 raise ValueError("All repositories must use the same PostgreSQL server and database")
