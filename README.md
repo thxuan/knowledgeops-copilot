@@ -68,8 +68,6 @@ python scripts/workbench.py
 
 在“数据库与空间”填写连接信息，选择已经初始化的 schema，然后检测连接。使用仓库 Compose 时，默认配置为：
 
-![连接设置页面与数据库空间入口](docs/images/quickstart/connection-settings.png)
-
 | 配置项 | 值 |
 | --- | --- |
 | 主机 / 端口 | `127.0.0.1` / `55432` |
