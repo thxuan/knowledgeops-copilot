@@ -79,7 +79,14 @@ flowchart LR
 
 ### 1. 安装并启动
 
-从项目根目录执行：
+先克隆仓库并进入项目目录：
+
+```sh
+git clone https://github.com/thxuan/knowledgeops-copilot.git
+cd knowledgeops-copilot
+```
+
+从项目根目录安装依赖并启动数据库：
 
 ```powershell
 python -m venv .venv
