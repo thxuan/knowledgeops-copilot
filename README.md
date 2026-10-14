@@ -24,17 +24,50 @@ Python · FastAPI · PostgreSQL · pgvector · BM25 · RRF · 单 Agent
 ## 架构
 
 ```mermaid
-flowchart LR
-    U[用户 / API] --> I[服务端身份与权限]
-    I --> D[上传 → 解析 → 切块 → 索引]
-    I --> R[向量 + BM25 → RRF → 可选重排]
-    R --> C[上下文 → 生成 claims → 引用校验]
-    I --> A[Agent 循环 → 工具执行]
-    A --> P[写操作提案 → 人工审批 → 事务提交]
-    D --> DB[(PostgreSQL + pgvector)]
-    C --> DB
-    P --> DB
+flowchart TB
+    U[用户消息] --> I[服务端身份与权限校验]
+    I --> M{请求模式}
+    M -->|自动| Q[聊天模型：识别问答或任务意图]
+    M -->|仅问答 / 批量评测| R
+    Q -->|知识问答| R
+    Q -->|Agent 任务| A
+
+    subgraph RAG[知识问答]
+        R[授权检索：语义通道调用 Embedding 模型<br/>向量 / BM25 → RRF → 可选重排]
+        R --> C[组装检索证据与会话上下文]
+        C --> G[聊天模型：生成答案与 claims<br/>按配置复核证据覆盖]
+        G --> V[服务端引用、版本与权限校验]
+    end
+
+    subgraph AGENT[受控 Agent]
+        A[聊天模型：规划、提出工具调用、组织结果]
+        A --> T[服务端校验与执行只读工具]
+        T -->|工具结果回填| A
+        A -->|写操作提案| P[服务端校验与人工审批]
+        P --> W[事务提交]
+        W -->|执行结果回填| A
+    end
+
+    V --> O[答案或任务结果]
+    A -->|任务结束| O
+    DB[(PostgreSQL + pgvector)] -.授权证据.-> R
+    T -.授权业务读取.-> DB
+    W --> DB
+    A -.持久化检查点.-> DB
+    V -.会话记录.-> DB
 ```
+
+**两条链路都会调用真实聊天模型：** 知识问答默认先检索证据，再交给模型生成答案；Agent 由模型提出工具调用，服务端执行后将结果回填，模型继续决定下一步或输出结果。“自动”模式还会先调用模型识别意图；“仅问答”和批量评测直接进入问答链路。多查询检索配置另有模型规划步骤。证据为空或预算不足时，服务端可以提前拒答，不必发起答案生成请求。
+
+文档准备单独进行，解析和切分由程序完成，向量化调用 Embedding 模型：
+
+```mermaid
+flowchart LR
+    D[授权上传文档] --> P[解析与切分]
+    P --> E[Embedding 模型：生成文档向量]
+    E --> DB[(PostgreSQL + pgvector<br/>保存文档、切块与向量索引)]
+```
+
 
 详见 [架构与设计取舍](docs/design.md)。本地配套目录 `../knowledgeops-architecture/index.html` 中的 HTML 架构导航 包含 16 个节点、代码入口和中英术语；下载仓库后用浏览器打开，或在父目录运行 `python -m http.server 8765`，访问 `http://127.0.0.1:8765/knowledgeops-architecture/`。GitHub 文件预览不会直接运行 HTML。
 
@@ -87,7 +120,7 @@ Rerank 为可选项，配置并测试后，可在会话的运行参数中按次�
 
 仍在连接设置页，进入“回答与任务模型”，填写生成模型的 Base URL、模型 ID 和 API Key，点击 **“测试连接” → “保存模型”**。此配置独立保存，不会改变 Embedding 或已有索引。
 
-仅运行知识问答时，模型单价可留空；使用 Agent 查询业务或创建工单时，需要按供应商实际价格填写输入、输出单价，以启用费用预算。Agent 业务数据与只读连接的准备见 [API 演示](docs/demo.md)。
+**知识问答和 Agent 都会调用真实聊天模型，是否填写单价不决定供应商是否收费。** 建议按供应商实际价格填写输入、输出单价；这两项当前用于 Agent 的本地费用估算与执行预算校验。首次只启用知识问答时，代码允许不填单价，但仍会发起模型请求；启用 Agent 时两项必须填写。已启用 Agent 后更换模型，也必须提供对应单价。Agent 业务数据与只读连接的准备见 [API 演示](docs/demo.md)。
 
 ![回答与任务模型的连接测试和保存入口](docs/images/quickstart/model-settings.png)
 
