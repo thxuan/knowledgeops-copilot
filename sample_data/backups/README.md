@@ -1,6 +1,6 @@
 # ko_samples 样例知识库备份
 
-[ko_samples.dump](ko_samples.dump) 是可恢复的 PostgreSQL custom-format 备份（约 581 KB）。[ko_samples.json](ko_samples.json) 记录 SHA-256、模型签名、表行数与样例文件哈希。备份从本地 `ko_samples` 的临时副本导出，保留 14 份虚构文档、38 条演示权限、100 个当前切块和 100 个真实 Embedding 向量。恢复无需重新批量 Embedding，也不会调用模型。
+[ko_samples.dump](ko_samples.dump) 是可恢复的 PostgreSQL custom-format 备份（约 581 KB）。[ko_samples.json](ko_samples.json) 记录 SHA-256、模型签名、表行数与样例文件哈希。恢复校验容许 Git 在 Windows 上把 Markdown 的 LF 换成 CRLF，仍严格核对数据库原始字节哈希、正文、元数据、权限和切块。备份从本地 `ko_samples` 的临时副本导出，保留 14 份虚构文档、38 条演示权限、100 个当前切块和 100 个真实 Embedding 向量。恢复无需重新批量 Embedding，也不会调用模型。
 
 ## 使用条件
 

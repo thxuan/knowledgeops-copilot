@@ -63,7 +63,11 @@ def reviewed_documents(db):
             raise ValueError('Non-sample document found; export refused')
         content = (ROOT / 'sample_data/knowledge_base' / d['filename']).read_bytes()
         parsed = clean_document(parse_document(d['filename'], content))
-        if (bytes(d['content']) != content or d['file_hash'] != hashlib.sha256(content).hexdigest()
+        stored_content = bytes(d['content'])
+        # Git on Windows may check out CRLF; compare sample text without that representation change.
+        # The stored file hash must still verify the exact bytes from the database.
+        if (stored_content.replace(b'\r\n', b'\n') != content.replace(b'\r\n', b'\n')
+                or d['file_hash'] != hashlib.sha256(stored_content).hexdigest()
                 or d['text'] != parsed.text or d['title'] != parsed.title
                 or json.loads(d['metadata']) != parsed.metadata or d['version'] != spec['version']
                 or d['source'] != 'sample_data/knowledge_base/'+d['filename']

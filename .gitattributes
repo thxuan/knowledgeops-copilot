@@ -1,0 +1,2 @@
+# Keep sample corpus bytes stable across Windows and Linux checkouts.
+sample_data/knowledge_base/*.md text eol=lf

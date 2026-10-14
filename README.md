@@ -73,7 +73,7 @@ flowchart LR
 
 ## 快速开始
 
-按 **连接设置 → 知识库 → 会话与评测** 的顺序操作。需要 Python 3.11+（建议 3.12）和 Docker Compose；仓库提供的 PostgreSQL 17 镜像已安装 pgvector 0.8.0，前端由 FastAPI 同源提供，无需单独构建。
+按 **连接设置 → 知识库 → 会话与评测** 的顺序操作。需要 Python 3.11+（建议 3.12）和已运行的 Docker Compose 环境（Windows 先启动 Docker Desktop，并使用 Linux 容器）；仓库提供的 PostgreSQL 17 镜像已安装 pgvector 0.8.0，前端由 FastAPI 同源提供，无需单独构建。
 
 以下截图展示操作位置，文档数量、模型单价与评测指标以自己的配置和实际运行为准。
 
