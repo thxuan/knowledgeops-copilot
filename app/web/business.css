@@ -1,0 +1,16 @@
+.business-page {max-width:1150px;margin:auto;}
+.business-scope {padding:14px 18px;border-left:3px solid var(--accent);background:var(--accent-soft);color:var(--muted);}
+.business-grid {display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.business-card {padding:24px;margin:18px 0;}
+.business-card h2 {font-size:19px;margin:0 0 18px;}
+.business-fields {display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:22px 0;}
+.business-metric dt {font-size:12px;color:var(--muted);}
+.business-metric dd {margin:4px 0 0;overflow-wrap:anywhere;}
+.business-access {padding-left:20px;font-size:13px;}
+.business-card a {display:inline-block;margin-top:10px;}
+.business-ticket {padding:18px 0;border-top:1px solid var(--border);}
+.business-ticket strong {margin-right:14px;overflow-wrap:anywhere;}
+.business-duration {padding:20px;border:1px dashed var(--border);margin:16px 0;}
+.business-duration summary {cursor:pointer;color:var(--muted);}
+.business-empty {padding:18px;background:var(--sidebar);}
+@media(max-width:700px){.business-grid {grid-template-columns:1fr;gap:0;}.business-page .heading-row {flex-direction:column;gap:12px;align-items:flex-start;}.business-page .identity-group {flex-wrap:wrap;}.business-card {padding:18px;}}

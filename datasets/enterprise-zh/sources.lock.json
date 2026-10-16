@@ -1,0 +1,334 @@
+{
+  "profile": "enterprise-zh-2026-10-16-v1",
+  "fetched_at": "2026-10-16T05:17:58.558902+00:00",
+  "sources": [
+    {
+      "page": "net-vpn-connect",
+      "title": "连接到 VPN",
+      "url": "https://help.gnome.org/gnome-help/net-vpn-connect.html.zh_CN",
+      "sha256": "9ea2f81228a1b48e829c52887e988e0c7218c700071edc56f32e32e8aad8ace7",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "net-wireless-connect",
+      "title": "连接到一个无线网络",
+      "url": "https://help.gnome.org/gnome-help/net-wireless-connect.html.zh_CN",
+      "sha256": "8e6e6f89466b45ae4cc7a0aaf0a7633d3b67628adf363000287451b6dd936b59",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "net-wireless-hidden",
+      "title": "连接到一个隐藏的无线网络",
+      "url": "https://help.gnome.org/gnome-help/net-wireless-hidden.html.zh_CN",
+      "sha256": "e4264b859a4068f990035a51b4679dfe48d331cf26b225ab13d72f3cfa73edce",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "net-wireless-troubleshooting",
+      "title": "无线网络故障排除",
+      "url": "https://help.gnome.org/gnome-help/net-wireless-troubleshooting.html.zh_CN",
+      "sha256": "8ec50360fb3b6f586262b34433f38f921455a4af084cc3eb38951497741a9987",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "net-wireless-troubleshooting-initial-check",
+      "title": "无线网络故障排除",
+      "url": "https://help.gnome.org/gnome-help/net-wireless-troubleshooting-initial-check.html.zh_CN",
+      "sha256": "9b7ba78951750713c502b0a233cffad5fc20b15ad1fe9aa42e2e70c4eae026cc",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "net-wireless-troubleshooting-hardware-check",
+      "title": "无线网路连接故障排除",
+      "url": "https://help.gnome.org/gnome-help/net-wireless-troubleshooting-hardware-check.html.zh_CN",
+      "sha256": "66c3cb92a9d4ed5611d1fac90d384ba92e81b8b1aa2fdceb03f991bcf36f27c2",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "net-wireless-disconnecting",
+      "title": "为什么我的无线网络总是断开？",
+      "url": "https://help.gnome.org/gnome-help/net-wireless-disconnecting.html.zh_CN",
+      "sha256": "8e9d9573de89830b0beb5d4b23210539f28822eaf2c822235de0a9a9a797efb6",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "net-wired-connect",
+      "title": "连接到有线网络（以太网）",
+      "url": "https://help.gnome.org/gnome-help/net-wired-connect.html.zh_CN",
+      "sha256": "84406afd05c6a052795b9b1c7201583e69938099691ecb76a5801fc2e07fc270",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "net-fixed-ip-address",
+      "title": "创建一个固定 IP 地址的连接",
+      "url": "https://help.gnome.org/gnome-help/net-fixed-ip-address.html.zh_CN",
+      "sha256": "f13d4f0d92f4093bf3bcbcd99c61e202779320206f588799dd65dfaf5950b712",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "net-findip",
+      "title": "查看您的 IP 地址",
+      "url": "https://help.gnome.org/gnome-help/net-findip.html.zh_CN",
+      "sha256": "65cb018c80f7a8472fe33681fbc12c2f6245ed3488e2ea0bf4e037b476aeb7a3",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "net-proxy",
+      "title": "代理服务器设置",
+      "url": "https://help.gnome.org/gnome-help/net-proxy.html.zh_CN",
+      "sha256": "aa5ff8facba2d730aa821756193ab9b668b70b20446ee9c265dd941be1a28c5f",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "net-othersconnect",
+      "title": "其他用户不能连接到互联网",
+      "url": "https://help.gnome.org/gnome-help/net-othersconnect.html.zh_CN",
+      "sha256": "9bd185c7ca5c3a80d7d68e446125997a56962d15ae8e738d8af0f439fd27a850",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "net-slow",
+      "title": "网速感觉很慢",
+      "url": "https://help.gnome.org/gnome-help/net-slow.html.zh_CN",
+      "sha256": "85e68b78f40c1a50b9e77b6d7196c4d45db7d07eeaddb8d6402e17efead9cac8",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "net-security-tips",
+      "title": "使用网络时保持安全",
+      "url": "https://help.gnome.org/gnome-help/net-security-tips.html.zh_CN",
+      "sha256": "caf04f54d429cd2a9e079a0c6be87dba73406524f3c0ddcd004f3a42c1b20fec",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "net-firewall-on-off",
+      "title": "启用和阻止防火墙访问",
+      "url": "https://help.gnome.org/gnome-help/net-firewall-on-off.html.zh_CN",
+      "sha256": "c927c4792e99b5c5060524cf648b3f38d7083c33201038ef27f6f8f39afc68a8",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "net-antivirus",
+      "title": "我需要安装反病毒软件吗？",
+      "url": "https://help.gnome.org/gnome-help/net-antivirus.html.zh_CN",
+      "sha256": "2c5f499cd468d36b2e731cfc84ac67fccae95c422b3e7f1f2be4cce0d96bf24e",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "user-changepassword",
+      "title": "更改密码",
+      "url": "https://help.gnome.org/gnome-help/user-changepassword.html.zh_CN",
+      "sha256": "a623546867840019a1050f07a96c8ac23e1c9af207ad0f75f4591b4505277a42",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "user-goodpassword",
+      "title": "选择一个可靠的密码",
+      "url": "https://help.gnome.org/gnome-help/user-goodpassword.html.zh_CN",
+      "sha256": "7b28868a6214bbc87ca02e47a0f7e7685d3f8aa0db0ce0d6ed171759d3126151",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "user-admin-explain",
+      "title": "管理员权限是如何工作的呢？",
+      "url": "https://help.gnome.org/gnome-help/user-admin-explain.html.zh_CN",
+      "sha256": "8c804d9dec2264f2b32ebcd8d24505a7441eafa1cae69c1fe94a30919e5bd188",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "user-admin-problems",
+      "title": "限制管理员权限产生的问题",
+      "url": "https://help.gnome.org/gnome-help/user-admin-problems.html.zh_CN",
+      "sha256": "d56a105439849ab24e5318d35e8aee184ff6e63aaf01891b3a5532a8d4b60ccc",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "user-add",
+      "title": "添加一个新用户",
+      "url": "https://help.gnome.org/gnome-help/user-add.html.zh_CN",
+      "sha256": "cf423087de73e972f2162e3b97f3710972540e527cb4c0728f347c6555c98f89",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "user-delete",
+      "title": "删除用户账号",
+      "url": "https://help.gnome.org/gnome-help/user-delete.html.zh_CN",
+      "sha256": "b6215e60c4c51888e5878a998dcc773a6c1f486062037e252c5edf0f0268af90",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "user-changepicture",
+      "title": "更改登录屏幕图片",
+      "url": "https://help.gnome.org/gnome-help/user-changepicture.html.zh_CN",
+      "sha256": "4eafe1f33a52dba355cf40a7899a0837c34e5d3728cf4c4bd19afdc208f3e52e",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "backup-why",
+      "title": "备份您的重要文件",
+      "url": "https://help.gnome.org/gnome-help/backup-why.html.zh_CN",
+      "sha256": "7b2761d0785f67e9b1005ebe65600b9deedde6c251888fbdfc1083d888a362e5",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "backup-what",
+      "title": "备份对象",
+      "url": "https://help.gnome.org/gnome-help/backup-what.html.zh_CN",
+      "sha256": "5a0ab9bca986b32c7c6726472436d7a1fd89540fe17a7cadb0795d9c23be8cf4",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "backup-where",
+      "title": "在何处存储备份",
+      "url": "https://help.gnome.org/gnome-help/backup-where.html.zh_CN",
+      "sha256": "50d3da079b65dff38ee11941e691842cf35434c2f4a866729816a78b750d5bd1",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "backup-how",
+      "title": "如何备份",
+      "url": "https://help.gnome.org/gnome-help/backup-how.html.zh_CN",
+      "sha256": "b92b0d8e9523086ffd8129801fb586f27961baf6ee7a615e8cb09763cd15eeae",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "backup-thinkabout",
+      "title": "我可以在哪里找到想要备份的文件？",
+      "url": "https://help.gnome.org/gnome-help/backup-thinkabout.html.zh_CN",
+      "sha256": "ec45709e41948a499ac7ecf692033891086a12232bb950e12485b4f0f1fecb47",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "files-search",
+      "title": "搜索文件",
+      "url": "https://help.gnome.org/gnome-help/files-search.html.zh_CN",
+      "sha256": "5230cad7cb816d79b433d2e83c814a19e4241da22e692ef4744b31092246d9b4",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "files-lost",
+      "title": "查找丢失的文件",
+      "url": "https://help.gnome.org/gnome-help/files-lost.html.zh_CN",
+      "sha256": "1544698a8d006667703f1042fb99a95e1e2c9db5d02d9b6386586f9929b15cf0",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "files-recover",
+      "title": "还原您删除的文件",
+      "url": "https://help.gnome.org/gnome-help/files-recover.html.zh_CN",
+      "sha256": "50c33ba84f6ed42beada6e25d3375fb892573b808ff3dfa5fb7f844199afe9d2",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "files-removedrive",
+      "title": "安全移除一个外接设备",
+      "url": "https://help.gnome.org/gnome-help/files-removedrive.html.zh_CN",
+      "sha256": "a04c90b9bb7b7105349ed28c41590f946d6a0c19f8e076f06762544c9f1ade40",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "disk-capacity",
+      "title": "检查磁盘剩余空间",
+      "url": "https://help.gnome.org/gnome-help/disk-capacity.html.zh_CN",
+      "sha256": "b7c9db318610192a6f7787f51a79d8e076f3c22bc17b7f169f16203aaa8a2408",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "disk-check",
+      "title": "检查磁盘错误",
+      "url": "https://help.gnome.org/gnome-help/disk-check.html.zh_CN",
+      "sha256": "906def3806351c238606ce88fb0a47b74904c4a9b232c29ddab17ef26731b1fd",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "disk-partitions",
+      "title": "管理卷和分区",
+      "url": "https://help.gnome.org/gnome-help/disk-partitions.html.zh_CN",
+      "sha256": "42cb12a62df425e064c682c7f828df68c7af20a1e884a23ff9205d61346d2528",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "privacy-screen-lock",
+      "title": "自动锁定屏幕",
+      "url": "https://help.gnome.org/gnome-help/privacy-screen-lock.html.zh_CN",
+      "sha256": "9a6956e3120d21ef6336a1923ccbc8ac56ecfc63c4611fcceaf5a99d47757cb0",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "sharing-desktop",
+      "title": "共享您的桌面",
+      "url": "https://help.gnome.org/gnome-help/sharing-desktop.html.zh_CN",
+      "sha256": "11ff2c50a9c13167c1af37c62a0c409d22f497ded3af47a397c59fb141976ac4",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "sharing-personal",
+      "title": "共享您的文件",
+      "url": "https://help.gnome.org/gnome-help/sharing-personal.html.zh_CN",
+      "sha256": "c2dbd8aed1303be332d59345006df8c70aa8958bea04ea947a6560b9d08a8dc7",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "printing-setup",
+      "title": "安装本地打印机",
+      "url": "https://help.gnome.org/gnome-help/printing-setup.html.zh_CN",
+      "sha256": "f91a4557f06c02f0e104d2d69fba2c697605628ac27fc8452fcdb49d23982aaa",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "nautilus-connect",
+      "title": "浏览服务器或网络共享中的文件",
+      "url": "https://help.gnome.org/gnome-help/nautilus-connect.html.zh_CN",
+      "sha256": "71548c57d06bc3ec1016ff1bc4522a3ff112089a2ebe70092dc34ba6b7600c8f",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    },
+    {
+      "page": "nautilus-file-properties-permissions",
+      "title": "设定文件权限",
+      "url": "https://help.gnome.org/gnome-help/nautilus-file-properties-permissions.html.zh_CN",
+      "sha256": "13a7c0f7031f7bb818864fa8ae6871c20010edc414d8883d4e64df3ad332e3ef",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+    }
+  ]
+}

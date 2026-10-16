@@ -1,9 +1,9 @@
 """Durable task APIs and resumable SSE; GET never creates another task."""
 import asyncio
 import json
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query, Request, Response
 from fastapi.responses import StreamingResponse
-from app.agent.contracts import StartRequest, ApprovalRequest, dump
+from app.agent.contracts import StartRequest, ApprovalRequest, ProposalRevision, dump
 from app.core.errors import AppError
 from app.core.identity import Identity, get_identity
 
@@ -44,6 +44,31 @@ async def approve(run_id: str, body: ApprovalRequest, request: Request, identity
     state = await asyncio.to_thread(agent.repo.approve, run_id, identity, body)
     agent.launch(run_id, identity)
     return public(state)
+
+@router.post("/agent/{run_id}/proposal")
+async def revise_proposal(run_id: str, body: ProposalRevision, request: Request, identity: Identity = Depends(get_identity)):
+    state = await asyncio.to_thread(service(request).repo.revise_proposal, run_id, identity, body)
+    return public(state)
+
+
+@router.get("/business/overview")
+async def business_overview(request: Request, response: Response, identity: Identity = Depends(get_identity)):
+    response.headers["Cache-Control"] = "no-store"
+    return await asyncio.to_thread(service(request).repo.business_overview, identity)
+
+
+@router.get("/tickets")
+async def tickets(request: Request, response: Response, limit: int = Query(30, ge=1, le=100), offset: int = Query(0, ge=0),
+                  identity: Identity = Depends(get_identity)):
+    response.headers["Cache-Control"] = "no-store"
+    return await asyncio.to_thread(service(request).repo.list_tickets, identity, limit, offset)
+
+
+@router.get("/tickets/{ticket_id}")
+async def ticket(ticket_id: str, request: Request, response: Response, identity: Identity = Depends(get_identity)):
+    response.headers["Cache-Control"] = "no-store"
+    return await asyncio.to_thread(service(request).repo.get_ticket, ticket_id, identity)
+
 
 @router.post("/agent/{run_id}/cancel")
 async def cancel(run_id: str, request: Request, identity: Identity = Depends(get_identity)):

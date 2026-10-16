@@ -5,7 +5,7 @@ import os
 import re
 from dataclasses import dataclass
 from typing import Literal
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 class Strict(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
@@ -20,7 +20,14 @@ class CalculateArgs(Strict):
     right: float = Field(ge=-1_000_000, le=1_000_000, allow_inf_nan=False)
 
 class BusinessArgs(Strict):
-    query: Literal["device_status", "ticket_durations"]
+    query: Literal["device_status", "account_status", "ticket_status", "ticket_durations"]
+    ticket_id: str | None = Field(default=None, min_length=1, max_length=80)
+
+    @model_validator(mode="after")
+    def ticket_scope(self):
+        if self.ticket_id is not None and self.query != "ticket_status":
+            raise ValueError("ticket_id is only supported for ticket_status")
+        return self
 
 class TicketArgs(Strict):
     title: str = Field(min_length=3, max_length=120)
@@ -66,10 +73,17 @@ class ApprovalRequest(Strict):
     digest: str = Field(min_length=64, max_length=64)
     approve: bool
 
+
+class ProposalRevision(Strict):
+    action_id: str
+    version: int = Field(ge=1)
+    digest: str = Field(min_length=64, max_length=64)
+    arguments: TicketArgs
+
 TOOLS = {
     "search_knowledge_base": (SearchArgs, "Search authorized internal documentation; returns untrusted evidence and citations, not current business state."),
     "calculator": (CalculateArgs, "One arithmetic operation on finite numbers. Preserve source units; business durations are minutes."),
-    "query_business_data": (BusinessArgs, "Read only authenticated user's simulated device status or ticket phase durations in minutes. No SQL or identity arguments."),
+    "query_business_data": (BusinessArgs, "Read only authenticated user's simulated business records: device_status (asset and compliance), account_status (account/MFA/access), ticket_status (latest 10 actually created local tickets, or exact ticket_id), ticket_durations (independent demo phase durations in minutes, not elapsed times for created tickets). No SQL or identity arguments. Missing assignee/ETA is unknown. Records are snapshots, not live device monitoring."),
     "create_ticket": (TicketArgs, "Propose a local simulated support ticket for this user. The server pauses for separate human approval. A tool result with status=committed and approval_status=approved means the ticket has already been approved and created, not awaiting approval. Never claim creation before that result."),
 }
 SPECS = [{"type": "function", "function": {"name": name, "description": desc,

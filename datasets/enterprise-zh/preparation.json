@@ -1,0 +1,11 @@
+{
+  "profile": "enterprise-zh-2026-10-16-v1",
+  "public_documents": 41,
+  "local_policy_documents": 14,
+  "document_count": 55,
+  "chunks_at_800": 232,
+  "agent_workflow_execution": "not_evaluated",
+  "database_import": "not_run",
+  "embedding_index": "not_built",
+  "stage": "pre_import_snapshot"
+}

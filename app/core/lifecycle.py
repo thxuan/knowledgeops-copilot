@@ -20,6 +20,14 @@ class ChatAdmission:
         recent.append(now)
         self.active += 1
         work = asyncio.create_task(operation())
+        if getattr(getattr(request, "state", None), "streaming_chat", False):
+            # StreamingResponse owns disconnect receive; do not race it for ASGI messages.
+            try:
+                return await work
+            finally:
+                work.cancel()
+                await asyncio.gather(work, return_exceptions=True)
+                self.active -= 1
         async def disconnected():
             # Body is already parsed by FastAPI. Direct receive avoids is_disconnected's
             # internal CancelScope swallowing cancellation during immediate app errors.

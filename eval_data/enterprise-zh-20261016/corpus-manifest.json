@@ -1,0 +1,1292 @@
+{
+  "dataset": "enterprise-zh-engineer-dev-20261016",
+  "as_of_date": "2026-10-16",
+  "database_schema": "ko_samples",
+  "embedding_collection": "bailian-v4-1024-validation-v1",
+  "runtime_fingerprint": "2416db4f80481ad677a11379e75d27245cdc6cf97c70315e86cf88fe2509c83c",
+  "user_id": "u_engineer_001",
+  "tenant_id": "tenant_clearwater",
+  "documents_total": 55,
+  "documents_visible": 54,
+  "question_counts": {
+    "fact": 41,
+    "policy": 13,
+    "cross_document": 16,
+    "unanswerable": 10,
+    "total": 80,
+    "smoke_subset": 12
+  },
+  "split": "dev",
+  "generation_method": "manual_from_current_parsed_documents; no generation or embedding calls; no Agent/evaluation execution",
+  "span_coordinates": "Unicode code points, start inclusive/end exclusive, measured in parsed document text (front matter removed)",
+  "source_resolution": "exact source and version; document_id recorded for audit only",
+  "licensing": "GNOME source excerpts and adaptations retain CC-BY-SA-3.0; original authors/translators credited per document. Local enterprise policies are fictional project fixtures.",
+  "documents": [
+    {
+      "document_id": "063bab18-bcb5-4d70-b778-8a62726354ad",
+      "filename": "01-it-service-catalog.md",
+      "title": "IT 服务目录与服务台联系指南",
+      "source": "sample_data/knowledge_base/01-it-service-catalog.md",
+      "version": "2.3",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "938fb1b7e0b8e4f1d2404fc2bee5bc34a0e8bde0ef6e9e7c7590b7278b2c0595",
+      "text_length": 1194,
+      "user_ids": [
+        "u_employee_001",
+        "u_engineer_001",
+        "u_support_001"
+      ],
+      "chunks": 7,
+      "indexed_chunks": 7,
+      "upstream_url": null,
+      "license": "local fictional policy; see project licensing",
+      "attribution": null,
+      "covered_by_qa": [
+        "P001",
+        "X007"
+      ]
+    },
+    {
+      "document_id": "8fff21e4-0b7f-4858-a63e-996d085d2c65",
+      "filename": "02-account-sso-mfa.md",
+      "title": "OneGate 统一身份、密码与多因素认证指南",
+      "source": "sample_data/knowledge_base/02-account-sso-mfa.md",
+      "version": "3.1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "98f579912f3ae09fe90fc2e6a635dec4758b2310da80155b6ec38818d650fe39",
+      "text_length": 1005,
+      "user_ids": [
+        "u_employee_001",
+        "u_engineer_001",
+        "u_support_001"
+      ],
+      "chunks": 7,
+      "indexed_chunks": 7,
+      "upstream_url": null,
+      "license": "local fictional policy; see project licensing",
+      "attribution": null,
+      "covered_by_qa": [
+        "P002",
+        "X001",
+        "X005"
+      ]
+    },
+    {
+      "document_id": "e8614d51-d3bd-434e-84b8-1c59cdb3a527",
+      "filename": "03-tidelink-vpn-guide.md",
+      "title": "TideLink VPN 安装、连接与排障",
+      "source": "sample_data/knowledge_base/03-tidelink-vpn-guide.md",
+      "version": "4.2",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "60757ec56b59d2d1cb112a71cd54f0182f219b3cb242ca98cbf0ef6a4d2594b8",
+      "text_length": 1268,
+      "user_ids": [
+        "u_employee_001",
+        "u_engineer_001",
+        "u_support_001"
+      ],
+      "chunks": 11,
+      "indexed_chunks": 11,
+      "upstream_url": null,
+      "license": "local fictional policy; see project licensing",
+      "attribution": null,
+      "covered_by_qa": [
+        "P003",
+        "X014"
+      ]
+    },
+    {
+      "document_id": "6dae2317-702e-46be-b5cb-6121e3c0daa6",
+      "filename": "04-endpoint-compliance.md",
+      "title": "公司终端安全与合规基线",
+      "source": "sample_data/knowledge_base/04-endpoint-compliance.md",
+      "version": "5.0",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "d2658956119401d200ab2444a24699ca0bb2c65753f6c4af9069c38f715e8e69",
+      "text_length": 941,
+      "user_ids": [
+        "u_employee_001",
+        "u_engineer_001",
+        "u_support_001"
+      ],
+      "chunks": 7,
+      "indexed_chunks": 7,
+      "upstream_url": null,
+      "license": "local fictional policy; see project licensing",
+      "attribution": null,
+      "covered_by_qa": [
+        "P004",
+        "X002",
+        "X003",
+        "X009"
+      ]
+    },
+    {
+      "document_id": "eb2569aa-3de9-4b22-8462-225644b52c57",
+      "filename": "05-email-and-files.md",
+      "title": "企业邮箱、TeamDrive 与外部分享指南",
+      "source": "sample_data/knowledge_base/05-email-and-files.md",
+      "version": "2.7",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "9d88f10cba2e47f6a7fd2ac295ebf406e0d90b29f7a235e1039fa9344a9f3da3",
+      "text_length": 851,
+      "user_ids": [
+        "u_employee_001",
+        "u_engineer_001",
+        "u_support_001"
+      ],
+      "chunks": 6,
+      "indexed_chunks": 6,
+      "upstream_url": null,
+      "license": "local fictional policy; see project licensing",
+      "attribution": null,
+      "covered_by_qa": [
+        "P005"
+      ]
+    },
+    {
+      "document_id": "f8c2cf2c-f380-43b2-876d-e7e89984546f",
+      "filename": "06-engineering-access.md",
+      "title": "工程环境与生产访问管理",
+      "source": "sample_data/knowledge_base/06-engineering-access.md",
+      "version": "1.9",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "974bbf33fe5ab7e24c0d8972bae4a1cc9265e2e4bf99f215893d2a2a5b9c5d08",
+      "text_length": 805,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 7,
+      "indexed_chunks": 7,
+      "upstream_url": null,
+      "license": "local fictional policy; see project licensing",
+      "attribution": null,
+      "covered_by_qa": [
+        "P006",
+        "X004"
+      ]
+    },
+    {
+      "document_id": "ff2101bd-2a38-40c8-9240-7343b13eb632",
+      "filename": "07-incident-priority-and-escalation.md",
+      "title": "IT 事件分级、响应与升级操作规范",
+      "source": "sample_data/knowledge_base/07-incident-priority-and-escalation.md",
+      "version": "3.4",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "3a6ead957c5379fe213ceb44c6a099feff3e0310d380e479436cd77ca53fa226",
+      "text_length": 882,
+      "user_ids": [
+        "u_support_001"
+      ],
+      "chunks": 6,
+      "indexed_chunks": 6,
+      "upstream_url": null,
+      "license": "local fictional policy; see project licensing",
+      "attribution": null,
+      "covered_by_qa": []
+    },
+    {
+      "document_id": "b838f886-b0ba-41b2-b3ff-cbfeedee3a0f",
+      "filename": "08-backup-and-restore.md",
+      "title": "办公数据备份与恢复说明",
+      "source": "sample_data/knowledge_base/08-backup-and-restore.md",
+      "version": "2.2",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "af3a50b250158db9ebbfe46597c79e08bb85f07ae4ba59c46d4171ec4ae1fe4c",
+      "text_length": 821,
+      "user_ids": [
+        "u_employee_001",
+        "u_engineer_001",
+        "u_support_001"
+      ],
+      "chunks": 6,
+      "indexed_chunks": 6,
+      "upstream_url": null,
+      "license": "local fictional policy; see project licensing",
+      "attribution": null,
+      "covered_by_qa": [
+        "P007",
+        "X003",
+        "X011"
+      ]
+    },
+    {
+      "document_id": "d26db8b4-6114-4d39-9e64-271cc67db5f9",
+      "filename": "09-data-classification.md",
+      "title": "数据分类与处理标准",
+      "source": "sample_data/knowledge_base/09-data-classification.md",
+      "version": "4.0",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "09da962590934fc62bd17f1a97c0cf1f954f67b589311136d41842f81813b332",
+      "text_length": 884,
+      "user_ids": [
+        "u_employee_001",
+        "u_engineer_001",
+        "u_support_001"
+      ],
+      "chunks": 10,
+      "indexed_chunks": 10,
+      "upstream_url": null,
+      "license": "local fictional policy; see project licensing",
+      "attribution": null,
+      "covered_by_qa": [
+        "P008",
+        "X012"
+      ]
+    },
+    {
+      "document_id": "3374718b-8159-40ae-8d23-0cc59a9202cf",
+      "filename": "10-remote-work-and-travel.md",
+      "title": "远程办公与出差网络安全指南",
+      "source": "sample_data/knowledge_base/10-remote-work-and-travel.md",
+      "version": "2.5",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "9b0840c6d3ac60d10143d29424324a88cc1b5e0a9aeea9a17600e8391a8ec96e",
+      "text_length": 706,
+      "user_ids": [
+        "u_employee_001",
+        "u_engineer_001",
+        "u_support_001"
+      ],
+      "chunks": 6,
+      "indexed_chunks": 6,
+      "upstream_url": null,
+      "license": "local fictional policy; see project licensing",
+      "attribution": null,
+      "covered_by_qa": [
+        "P009",
+        "X007",
+        "X008"
+      ]
+    },
+    {
+      "document_id": "7c674182-da35-4b70-994c-42d769a685f3",
+      "filename": "11-common-errors.md",
+      "title": "常见办公应用错误码速查",
+      "source": "sample_data/knowledge_base/11-common-errors.md",
+      "version": "1.6",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "75be762439ff9d678618693fa530a7a8300d554cabe4e0248e125fbdd8af41b0",
+      "text_length": 770,
+      "user_ids": [
+        "u_employee_001",
+        "u_engineer_001",
+        "u_support_001"
+      ],
+      "chunks": 8,
+      "indexed_chunks": 8,
+      "upstream_url": null,
+      "license": "local fictional policy; see project licensing",
+      "attribution": null,
+      "covered_by_qa": [
+        "P010",
+        "X010"
+      ]
+    },
+    {
+      "document_id": "b4ed8438-e69a-4313-b884-623c81707096",
+      "filename": "12-device-lifecycle.md",
+      "title": "办公设备领用、维修、换机与归还",
+      "source": "sample_data/knowledge_base/12-device-lifecycle.md",
+      "version": "2.1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "8397b879261a85b454a08b041b2dba89c8cf8e1f9a2111703f71ea39b4290bb7",
+      "text_length": 591,
+      "user_ids": [
+        "u_employee_001",
+        "u_engineer_001",
+        "u_support_001"
+      ],
+      "chunks": 7,
+      "indexed_chunks": 7,
+      "upstream_url": null,
+      "license": "local fictional policy; see project licensing",
+      "attribution": null,
+      "covered_by_qa": [
+        "P011",
+        "X015"
+      ]
+    },
+    {
+      "document_id": "c2ad6839-8f39-4d54-ba95-abac15aa5d50",
+      "filename": "13-maintenance-calendar.md",
+      "title": "IT 维护窗口与变更通知规则",
+      "source": "sample_data/knowledge_base/13-maintenance-calendar.md",
+      "version": "1.8",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "78a6af63a298c4f817d1204a67c27c161d061c4799be28c1fd0bfbfa927d3de9",
+      "text_length": 606,
+      "user_ids": [
+        "u_employee_001",
+        "u_engineer_001",
+        "u_support_001"
+      ],
+      "chunks": 6,
+      "indexed_chunks": 6,
+      "upstream_url": null,
+      "license": "local fictional policy; see project licensing",
+      "attribution": null,
+      "covered_by_qa": [
+        "P012"
+      ]
+    },
+    {
+      "document_id": "0347bac9-9eba-45e1-8446-ddf9d2d140be",
+      "filename": "14-onboarding-and-offboarding.md",
+      "title": "入职、转岗与离职的 IT 账号和设备流程",
+      "source": "sample_data/knowledge_base/14-onboarding-and-offboarding.md",
+      "version": "3.0",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "9baf821307831810fe9ae68c29b1ebc3b940df8b5f957c67d877d3e334dcf3f5",
+      "text_length": 726,
+      "user_ids": [
+        "u_employee_001",
+        "u_engineer_001",
+        "u_support_001"
+      ],
+      "chunks": 6,
+      "indexed_chunks": 6,
+      "upstream_url": null,
+      "license": "local fictional policy; see project licensing",
+      "attribution": null,
+      "covered_by_qa": [
+        "P013",
+        "X006",
+        "X016"
+      ]
+    },
+    {
+      "document_id": "2640873c-1f63-4972-bdff-ea800db91127",
+      "filename": "gnome-backup-how.md",
+      "title": "如何备份",
+      "source": "gnome-backup-how.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "c904c3ebfbdaf0ade4bcbf07f6da26eb227473d1cc107bf2b20f25a83533268c",
+      "text_length": 874,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 4,
+      "indexed_chunks": 4,
+      "upstream_url": "https://help.gnome.org/gnome-help/backup-how.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 Tiffany Antopolski 编辑者 Michael Hill Klein Kravis 翻译者 TeliuTe tuberry Victor_Trista 其他致谢人 GNOME 文档项目 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G001",
+        "X003"
+      ]
+    },
+    {
+      "document_id": "c7179a0c-857d-425c-87ad-c8885def995c",
+      "filename": "gnome-backup-thinkabout.md",
+      "title": "我可以在哪里找到想要备份的文件？",
+      "source": "gnome-backup-thinkabout.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "fbf761e5ef7cc1f58c76410ee1aa5cc65a40e008d87633943826b5dac1c61b91",
+      "text_length": 1053,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 4,
+      "indexed_chunks": 4,
+      "upstream_url": "https://help.gnome.org/gnome-help/backup-thinkabout.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 Tiffany Antopolski GNOME 文档项目 编辑者 Michael Hill 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G002"
+      ]
+    },
+    {
+      "document_id": "b9476e63-6499-4bd5-802e-506b3dafe0e2",
+      "filename": "gnome-backup-what.md",
+      "title": "备份对象",
+      "source": "gnome-backup-what.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "d0470916e546cd461ee4bcbd4730a2cd018176ab9dccf293ccec866c8d4eb7bc",
+      "text_length": 878,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 4,
+      "indexed_chunks": 4,
+      "upstream_url": "https://help.gnome.org/gnome-help/backup-what.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 GNOME 文档项目 Tiffany Antopolski 编辑者 Michael Hill 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G003"
+      ]
+    },
+    {
+      "document_id": "123e539c-60ac-46ac-a24a-52462470b936",
+      "filename": "gnome-backup-where.md",
+      "title": "在何处存储备份",
+      "source": "gnome-backup-where.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "ec187e4f781632971da37bdd4d64ce37fd6d948d70905803bd9dcd9b7d645826",
+      "text_length": 850,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 4,
+      "indexed_chunks": 4,
+      "upstream_url": "https://help.gnome.org/gnome-help/backup-where.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 GNOME 文档项目 Tiffany Antopolski 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G004"
+      ]
+    },
+    {
+      "document_id": "aadd0646-b08c-4e1f-b804-66dfd973721f",
+      "filename": "gnome-backup-why.md",
+      "title": "备份您的重要文件",
+      "source": "gnome-backup-why.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "b59aaf932c288af4378e806fda9f38429c225f949a54e7bf1b688a22a7b489f6",
+      "text_length": 732,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 2,
+      "indexed_chunks": 2,
+      "upstream_url": "https://help.gnome.org/gnome-help/backup-why.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 GNOME 文档项目 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G005"
+      ]
+    },
+    {
+      "document_id": "eba9c53c-2277-4167-a700-69cf0cdf949f",
+      "filename": "gnome-disk-capacity.md",
+      "title": "检查磁盘剩余空间",
+      "source": "gnome-disk-capacity.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "d570394b94a9b75111f5a86ad9bddf32995a46aee404220a27957482e0e149d0",
+      "text_length": 1084,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 7,
+      "indexed_chunks": 7,
+      "upstream_url": "https://help.gnome.org/gnome-help/disk-capacity.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 GNOME 文档项目 Natalia Ruz Leiva 编辑者 Michael Hill Rafael Fontenelle 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G006",
+        "X010"
+      ]
+    },
+    {
+      "document_id": "59c95e1d-d66e-48ae-b958-95ce8cb0ddd5",
+      "filename": "gnome-disk-check.md",
+      "title": "检查磁盘错误",
+      "source": "gnome-disk-check.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "d1f23105a0036b2e561aef25bb7256e831692eda80fe84556c1fd3f6c1553649",
+      "text_length": 999,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 6,
+      "indexed_chunks": 6,
+      "upstream_url": "https://help.gnome.org/gnome-help/disk-check.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 GNOME 文档项目 Natalia Ruz Leiva 编辑者 Michael Hill 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G007",
+        "X015"
+      ]
+    },
+    {
+      "document_id": "8572bddf-7c37-4cd4-a601-f35678e68f98",
+      "filename": "gnome-disk-partitions.md",
+      "title": "管理卷和分区",
+      "source": "gnome-disk-partitions.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "c84aedd9fe948c952c7eb8de4a771d1f0b7860bb4596401c66392fb9d425f86e",
+      "text_length": 1104,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 4,
+      "indexed_chunks": 4,
+      "upstream_url": "https://help.gnome.org/gnome-help/disk-partitions.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 GNOME 文档项目 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G008"
+      ]
+    },
+    {
+      "document_id": "02394eb2-a18e-4ca6-a06c-86bf8c8ffdd1",
+      "filename": "gnome-files-lost.md",
+      "title": "查找丢失的文件",
+      "source": "gnome-files-lost.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "1101bfadc711d6cacc004d004ce1d9c706b1483dcf7e1bf69c3b5c78f21595ee",
+      "text_length": 807,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 3,
+      "indexed_chunks": 3,
+      "upstream_url": "https://help.gnome.org/gnome-help/files-lost.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 GNOME 文档项目 Shaun McCance 编辑者 Michael Hill David King 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G009"
+      ]
+    },
+    {
+      "document_id": "44793ee8-8cc5-430c-a6a7-845277a3b50f",
+      "filename": "gnome-files-recover.md",
+      "title": "还原您删除的文件",
+      "source": "gnome-files-recover.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "5677f6c2e03e4041f29729c55d356f6756fac166b9b1002ddfdde07682b2c262",
+      "text_length": 800,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 3,
+      "indexed_chunks": 3,
+      "upstream_url": "https://help.gnome.org/gnome-help/files-recover.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 GNOME 文档项目 编辑者 David King 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G010",
+        "X011"
+      ]
+    },
+    {
+      "document_id": "2a361391-2848-41b8-a3b6-80c534296b7c",
+      "filename": "gnome-files-removedrive.md",
+      "title": "安全移除一个外接设备",
+      "source": "gnome-files-removedrive.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "9c10ebf922fd2661831fc6aefa796cba40e8c83dd8f06299332fe584df1459b3",
+      "text_length": 943,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 5,
+      "indexed_chunks": 5,
+      "upstream_url": "https://help.gnome.org/gnome-help/files-removedrive.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 Shaun McCance Jim Campbell 编辑者 Michael Hill 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G011"
+      ]
+    },
+    {
+      "document_id": "fc461c00-2137-4a90-8016-4a2d8ad2d41f",
+      "filename": "gnome-files-search.md",
+      "title": "搜索文件",
+      "source": "gnome-files-search.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "6bdd43131b4fd43c182a45b7b8b1936f1510b7fb6f8be5df4e4d073374760283",
+      "text_length": 1227,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 6,
+      "indexed_chunks": 6,
+      "upstream_url": "https://help.gnome.org/gnome-help/files-search.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 GNOME 文档项目 Shaun McCance 编辑者 Michael Hill David King Jim Campbell 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G012"
+      ]
+    },
+    {
+      "document_id": "202b9947-4fc8-43d8-9663-adf5d719cf23",
+      "filename": "gnome-nautilus-connect.md",
+      "title": "浏览服务器或网络共享中的文件",
+      "source": "gnome-nautilus-connect.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "b44fecaa5970c8111dba2b9ada2f346e2ebbfbac2e57f43e5dc62875f41c015d",
+      "text_length": 2408,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 9,
+      "indexed_chunks": 9,
+      "upstream_url": "https://help.gnome.org/gnome-help/nautilus-connect.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 Shaun McCance 编辑者 Michael Hill David King 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G013",
+        "X012"
+      ]
+    },
+    {
+      "document_id": "04ac7c83-ab03-45b9-a067-056260715e88",
+      "filename": "gnome-nautilus-file-properties-permissions.md",
+      "title": "设定文件权限",
+      "source": "gnome-nautilus-file-properties-permissions.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "0e18cdec4524d440346cde99a3aaea9e135bbbc33fce02aba8c925bbb0c35aaa",
+      "text_length": 1282,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 5,
+      "indexed_chunks": 5,
+      "upstream_url": "https://help.gnome.org/gnome-help/nautilus-file-properties-permissions.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 Tiffany Antopolski Shaun McCance 编辑者 Michael Hill 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G014"
+      ]
+    },
+    {
+      "document_id": "11f192c2-4c29-4d8a-88fd-e48102307bb3",
+      "filename": "gnome-net-antivirus.md",
+      "title": "我需要安装反病毒软件吗？",
+      "source": "gnome-net-antivirus.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "9bebdadfe7cacd36f88928e1e835ef91d0dd8793c5fdcd511291364c239da47e",
+      "text_length": 808,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 3,
+      "indexed_chunks": 3,
+      "upstream_url": "https://help.gnome.org/gnome-help/net-antivirus.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 GNOME 文档项目 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G015",
+        "X002"
+      ]
+    },
+    {
+      "document_id": "d9d23b9d-52c6-45da-9ea9-bd772d878247",
+      "filename": "gnome-net-findip.md",
+      "title": "查看您的 IP 地址",
+      "source": "gnome-net-findip.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "0cf5952bafc8ad8d77740b3b33cd5e77d9fdecebfbf6adc9281b778cf3399192",
+      "text_length": 979,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 6,
+      "indexed_chunks": 6,
+      "upstream_url": "https://help.gnome.org/gnome-help/net-findip.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 Shaun McCance Jim Campbell 编辑者 Michael Hill Ekaterina Gerasimova Rafael Fontenelle 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G016"
+      ]
+    },
+    {
+      "document_id": "06270a82-145c-4be6-8ba0-eb94a8f67fd7",
+      "filename": "gnome-net-firewall-on-off.md",
+      "title": "启用和阻止防火墙访问",
+      "source": "gnome-net-firewall-on-off.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "9bd33980529b56d897453e09525c10942e418e638677e17c03c5e94a19bb2f13",
+      "text_length": 867,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 3,
+      "indexed_chunks": 3,
+      "upstream_url": "https://help.gnome.org/gnome-help/net-firewall-on-off.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 Paul W. Frields 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G017"
+      ]
+    },
+    {
+      "document_id": "1dbc5307-b44f-4e2e-98f9-3d31461143d1",
+      "filename": "gnome-net-fixed-ip-address.md",
+      "title": "创建一个固定 IP 地址的连接",
+      "source": "gnome-net-fixed-ip-address.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "0440144f7e971ce2bf50e2ed0ec1e67c339731fbb4ee3b46c1aca32397960719",
+      "text_length": 959,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 4,
+      "indexed_chunks": 4,
+      "upstream_url": "https://help.gnome.org/gnome-help/net-fixed-ip-address.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 Jim Campbell Ekaterina Gerasimova 编辑者 Michael Hill 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G018",
+        "X014"
+      ]
+    },
+    {
+      "document_id": "2798c5da-8b34-4db1-b9fc-cae203ea9127",
+      "filename": "gnome-net-othersconnect.md",
+      "title": "其他用户不能连接到互联网",
+      "source": "gnome-net-othersconnect.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "3efddc41a55af9ea0bfa49b9e61ae44b11e72f697b9608c734fd048693fc3efa",
+      "text_length": 745,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 3,
+      "indexed_chunks": 3,
+      "upstream_url": "https://help.gnome.org/gnome-help/net-othersconnect.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 Phil Bull 编辑者 Michael Hill Ekaterina Gerasimova 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G019"
+      ]
+    },
+    {
+      "document_id": "faa9539c-f13f-43fa-bf05-e4ec7c6367a1",
+      "filename": "gnome-net-proxy.md",
+      "title": "代理服务器设置",
+      "source": "gnome-net-proxy.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "bba234e2642245527c47765add9ed54b6840f68398f2571c145bdc3f881f3aeb",
+      "text_length": 867,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 5,
+      "indexed_chunks": 5,
+      "upstream_url": "https://help.gnome.org/gnome-help/net-proxy.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 Phil Bull Baptiste Mille-Mathias 编辑者 Michael Hill Ekaterina Gerasimova 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G020"
+      ]
+    },
+    {
+      "document_id": "f83ac8b9-63c2-4290-8dd1-34c0d5ebe9f3",
+      "filename": "gnome-net-security-tips.md",
+      "title": "使用网络时保持安全",
+      "source": "gnome-net-security-tips.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "dcfbe51f06112bfa4249ea058412e1e17371e3d4ad6703ef57ef89ef5033ca80",
+      "text_length": 1067,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 3,
+      "indexed_chunks": 3,
+      "upstream_url": "https://help.gnome.org/gnome-help/net-security-tips.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 Steven Richards 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G021"
+      ]
+    },
+    {
+      "document_id": "0ce12963-babd-4fdf-bf03-0c203b2f5460",
+      "filename": "gnome-net-slow.md",
+      "title": "网速感觉很慢",
+      "source": "gnome-net-slow.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "57e4ab76e65a112287a3b37954fa7ac713267c9d820ab7eef0532a6894126ea1",
+      "text_length": 1153,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 3,
+      "indexed_chunks": 3,
+      "upstream_url": "https://help.gnome.org/gnome-help/net-slow.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 Phil Bull 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G022"
+      ]
+    },
+    {
+      "document_id": "2c5dcbc6-2748-49fd-a4c7-5cdb1566901d",
+      "filename": "gnome-net-vpn-connect.md",
+      "title": "连接到 VPN",
+      "source": "gnome-net-vpn-connect.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "7d6fd3d41b8502177e7bc2eb8c55b57943e3950856e7e413408163bfc42b686f",
+      "text_length": 1228,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 5,
+      "indexed_chunks": 5,
+      "upstream_url": "https://help.gnome.org/gnome-help/net-vpn-connect.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 GNOME 文档项目 编辑者 Michael Hill Ekaterina Gerasimova 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G023"
+      ]
+    },
+    {
+      "document_id": "a6322839-0bd3-4816-a23e-bea73806359d",
+      "filename": "gnome-net-wired-connect.md",
+      "title": "连接到有线网络（以太网）",
+      "source": "gnome-net-wired-connect.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "fe4f61b6b073817e16ecbb837209996d4b220047755946e3b0af5f5951e90a5f",
+      "text_length": 834,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 4,
+      "indexed_chunks": 4,
+      "upstream_url": "https://help.gnome.org/gnome-help/net-wired-connect.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 GNOME 文档项目 编辑者 Michael Hill 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G024"
+      ]
+    },
+    {
+      "document_id": "9013be8b-4915-45a9-80e2-2a0670f5bcee",
+      "filename": "gnome-net-wireless-connect.md",
+      "title": "连接到一个无线网络",
+      "source": "gnome-net-wireless-connect.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "bdf7e7ed6615711efc122f1ea59724d31b386591fc1048e8c07ece27904814b6",
+      "text_length": 1055,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 4,
+      "indexed_chunks": 4,
+      "upstream_url": "https://help.gnome.org/gnome-help/net-wireless-connect.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 GNOME 文档项目 编辑者 Michael Hill 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G025",
+        "X013"
+      ]
+    },
+    {
+      "document_id": "982f0469-a379-413b-8bd7-54b47f46c365",
+      "filename": "gnome-net-wireless-disconnecting.md",
+      "title": "为什么我的无线网络总是断开？",
+      "source": "gnome-net-wireless-disconnecting.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "c81ddaeb235d8f0b2be5084883c574416d634944166e1415117040097d356843",
+      "text_length": 1095,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 7,
+      "indexed_chunks": 7,
+      "upstream_url": "https://help.gnome.org/gnome-help/net-wireless-disconnecting.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 Jim Campbell Phil Bull 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G026"
+      ]
+    },
+    {
+      "document_id": "63806ede-d81a-4e09-93e7-95baa4e3641f",
+      "filename": "gnome-net-wireless-hidden.md",
+      "title": "连接到一个隐藏的无线网络",
+      "source": "gnome-net-wireless-hidden.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "ded7ea6ff6435ac3f6ffc15700043a2207f3ddf372a61d04a1b615771074f470",
+      "text_length": 986,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 4,
+      "indexed_chunks": 4,
+      "upstream_url": "https://help.gnome.org/gnome-help/net-wireless-hidden.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 GNOME 文档项目 编辑者 Michael Hill Ekaterina Gerasimova 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G027"
+      ]
+    },
+    {
+      "document_id": "25a5d736-8864-45f0-8a97-3141838e1a3e",
+      "filename": "gnome-net-wireless-troubleshooting-hardware-check.md",
+      "title": "无线网路连接故障排除",
+      "source": "gnome-net-wireless-troubleshooting-hardware-check.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "bda81b0dfe9106a675c9e06cca0218fe2923d9c3f5f2fbb4941db7837a1397e9",
+      "text_length": 2334,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 10,
+      "indexed_chunks": 10,
+      "upstream_url": "https://help.gnome.org/gnome-help/net-wireless-troubleshooting-hardware-check.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 Ubuntu wiki 文档贡献者 GNOME 文档项目 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G028"
+      ]
+    },
+    {
+      "document_id": "fa0a02b1-abb8-43f1-a934-bd9f6e31a63e",
+      "filename": "gnome-net-wireless-troubleshooting-initial-check.md",
+      "title": "无线网络故障排除",
+      "source": "gnome-net-wireless-troubleshooting-initial-check.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "b86ce0ed2566d599fdfeb10e370d5a069849b19ed2efb2d566bf414dec088471",
+      "text_length": 1091,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 5,
+      "indexed_chunks": 5,
+      "upstream_url": "https://help.gnome.org/gnome-help/net-wireless-troubleshooting-initial-check.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 Ubuntu wiki 文档贡献者 GNOME 文档项目 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G029",
+        "X013"
+      ]
+    },
+    {
+      "document_id": "cf0971c6-8f16-445f-8571-18015a32be2f",
+      "filename": "gnome-net-wireless-troubleshooting.md",
+      "title": "无线网络故障排除",
+      "source": "gnome-net-wireless-troubleshooting.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "a588c37e03f074df381c28a4b768a5f89f69fb6df0b111a8f402f207d72073be",
+      "text_length": 857,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 4,
+      "indexed_chunks": 4,
+      "upstream_url": "https://help.gnome.org/gnome-help/net-wireless-troubleshooting.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 Ubuntu wiki 文档贡献者 GNOME 文档项目 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G030"
+      ]
+    },
+    {
+      "document_id": "aac1e55d-ad92-4542-9172-34476d5a080f",
+      "filename": "gnome-printing-setup.md",
+      "title": "安装本地打印机",
+      "source": "gnome-printing-setup.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "9705c1f532d3b67ee98f8ec318f8272253c582d4bb1aeaf347e2248d485c4fe0",
+      "text_length": 987,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 4,
+      "indexed_chunks": 4,
+      "upstream_url": "https://help.gnome.org/gnome-help/printing-setup.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 Phil Bull Jim Campbell Paul W. Frields Shaun McCance 编辑者 Michael Hill 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G031"
+      ]
+    },
+    {
+      "document_id": "1e8d1cff-7af7-4da6-9aaf-5e8d6535f58d",
+      "filename": "gnome-privacy-screen-lock.md",
+      "title": "自动锁定屏幕",
+      "source": "gnome-privacy-screen-lock.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "2d42e2b2506e33ce67f3369a0058df2c4d4fd000b3408019d75a2aca2b2d011b",
+      "text_length": 934,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 4,
+      "indexed_chunks": 4,
+      "upstream_url": "https://help.gnome.org/gnome-help/privacy-screen-lock.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 Shaun McCance 编辑者 Michael Hill 翻译者 TeliuTe tuberry Victor_Trista 其他致谢人 Jim Campbell 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G032",
+        "X009"
+      ]
+    },
+    {
+      "document_id": "853b4526-dfbd-4a64-802e-2231b097b34c",
+      "filename": "gnome-sharing-desktop.md",
+      "title": "共享您的桌面",
+      "source": "gnome-sharing-desktop.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "5b6159a0a6214e242361bac278544cb0a13d6089f7aec897cf1aff605c7b8184",
+      "text_length": 1865,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 9,
+      "indexed_chunks": 9,
+      "upstream_url": "https://help.gnome.org/gnome-help/sharing-desktop.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 Marie Stará Ekaterina Gerasimova Jim Campbell 编辑者 Michael Hill 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G033",
+        "X007"
+      ]
+    },
+    {
+      "document_id": "175aad9a-9761-4f60-bbb5-2409c00bd936",
+      "filename": "gnome-sharing-personal.md",
+      "title": "共享您的文件",
+      "source": "gnome-sharing-personal.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "42fe02da3d2d7122fb3f41d8aa3b0aa708e6aae4ed4ae6135016caeddbb1a945",
+      "text_length": 895,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 4,
+      "indexed_chunks": 4,
+      "upstream_url": "https://help.gnome.org/gnome-help/sharing-personal.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 Michael Hill 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G034",
+        "X008"
+      ]
+    },
+    {
+      "document_id": "043f2b7c-1180-4197-8daa-39645cf3b9f6",
+      "filename": "gnome-user-add.md",
+      "title": "添加一个新用户",
+      "source": "gnome-user-add.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "c57eded8892df734dfc70ef66f5547433f2b8e5cec8ff8496b99830f038aa1ee",
+      "text_length": 1081,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 4,
+      "indexed_chunks": 4,
+      "upstream_url": "https://help.gnome.org/gnome-help/user-add.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 GNOME 文档项目 Shaun McCance 编辑者 Michael Hill Ekaterina Gerasimova 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G035",
+        "X016"
+      ]
+    },
+    {
+      "document_id": "b7ab91e2-0e47-412b-a3a6-fa58180366e2",
+      "filename": "gnome-user-admin-explain.md",
+      "title": "管理员权限是如何工作的呢？",
+      "source": "gnome-user-admin-explain.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "add74e50cd5b061735974ce8c86fc61d639eb65a34a3553845ab8f627ac57cca",
+      "text_length": 1386,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 6,
+      "indexed_chunks": 6,
+      "upstream_url": "https://help.gnome.org/gnome-help/user-admin-explain.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 GNOME 文档项目 编辑者 Ekaterina Gerasimova Michael Hill 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G036",
+        "X004"
+      ]
+    },
+    {
+      "document_id": "458fe537-c215-426b-98bc-8707dc622098",
+      "filename": "gnome-user-admin-problems.md",
+      "title": "限制管理员权限产生的问题",
+      "source": "gnome-user-admin-problems.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "1bccd62bac192b20aa481a6af2bc893dc2b755081935d2eb0142287a2ef668ef",
+      "text_length": 625,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 3,
+      "indexed_chunks": 3,
+      "upstream_url": "https://help.gnome.org/gnome-help/user-admin-problems.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编辑者 Ekaterina Gerasimova 翻译者 TeliuTe tuberry Victor_Trista 其他致谢人 GNOME 文档项目 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G037"
+      ]
+    },
+    {
+      "document_id": "023c8abe-d731-433b-ab88-32636e670472",
+      "filename": "gnome-user-changepassword.md",
+      "title": "更改密码",
+      "source": "gnome-user-changepassword.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "a3e7ed978dbf1a185275a3f5a2bb297b2a63ef20f4f163ccc83a28ee96af26fd",
+      "text_length": 855,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 4,
+      "indexed_chunks": 4,
+      "upstream_url": "https://help.gnome.org/gnome-help/user-changepassword.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 GNOME 文档项目 编辑者 Michael Hill Ekaterina Gerasimova 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G038",
+        "X005"
+      ]
+    },
+    {
+      "document_id": "afdd3332-7ad0-4271-9cbb-951e48f4e690",
+      "filename": "gnome-user-changepicture.md",
+      "title": "更改登录屏幕图片",
+      "source": "gnome-user-changepicture.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "19b54ce15412b0d57edc485916801bb5771a00b85219a07a76c6f63d3d42f420",
+      "text_length": 929,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 4,
+      "indexed_chunks": 4,
+      "upstream_url": "https://help.gnome.org/gnome-help/user-changepicture.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 GNOME 文档项目 Shaun McCance 编辑者 Ekaterina Gerasimova Michael Hill 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G039"
+      ]
+    },
+    {
+      "document_id": "89c91af0-b595-4a5e-9e22-6ef0295512f1",
+      "filename": "gnome-user-delete.md",
+      "title": "删除用户账号",
+      "source": "gnome-user-delete.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "10ae6700d93a2d54423429247b36e0a7e57f63dc6ec0b46ca0598199280a27a1",
+      "text_length": 852,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 3,
+      "indexed_chunks": 3,
+      "upstream_url": "https://help.gnome.org/gnome-help/user-delete.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 Tiffany Antopolski GNOME 文档项目 Shaun McCance 编辑者 Michael Hill Ekaterina Gerasimova 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G040",
+        "X006"
+      ]
+    },
+    {
+      "document_id": "94425534-ae3c-441b-9e50-35e7daa13045",
+      "filename": "gnome-user-goodpassword.md",
+      "title": "选择一个可靠的密码",
+      "source": "gnome-user-goodpassword.md",
+      "version": "enterprise-zh-2026-10-16-v1",
+      "parser_version": "utf8-structure-v1:md",
+      "revision": 1,
+      "text_hash": "9dfef2be5cd069fd92354e7718e5c461dce2599a48876c912f0edd1285fe8dac",
+      "text_length": 1251,
+      "user_ids": [
+        "u_engineer_001"
+      ],
+      "chunks": 5,
+      "indexed_chunks": 5,
+      "upstream_url": "https://help.gnome.org/gnome-help/user-goodpassword.html.zh_CN",
+      "license": "CC-BY-SA-3.0",
+      "attribution": "关于 © 2011, 2012 TeliuTe © 2021 tuberry © 2023 Victor_Trista 编写者 GNOME 文档项目 Phil Bull Tiffany Antopolski 编辑者 Michael Hill 翻译者 TeliuTe tuberry Victor_Trista 许可信息 This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License .",
+      "covered_by_qa": [
+        "G041",
+        "X001"
+      ]
+    }
+  ]
+}

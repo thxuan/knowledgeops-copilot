@@ -26,6 +26,17 @@ async def workbench_page():
     return FileResponse(UI / "index.html", headers={"Cache-Control": "no-store"})
 
 
+@router.get("/workbench/tickets", include_in_schema=False)
+@router.get("/workbench/tickets/{ticket_id}", include_in_schema=False)
+async def tickets_page():
+    return FileResponse(UI / "tickets.html", headers={"Cache-Control": "no-store"})
+
+
+@router.get("/workbench/business", include_in_schema=False)
+async def business_page():
+    return FileResponse(UI / "business.html", headers={"Cache-Control": "no-store"})
+
+
 @router.get("/workbench/config")
 async def config(request: Request, identity: Identity = Depends(get_identity)):
     settings = request.app.state.settings
@@ -83,6 +94,12 @@ def scope_services(app, body):
     return ChatService(app.state.conversations, vectors, client, gs), actual
 
 
+@router.post("/workbench/chat/stream")
+async def workbench_chat_stream(body: WorkbenchChatRequest, request: Request, identity: Identity = Depends(get_identity)):
+    from app.api.streaming import stream_response
+    return stream_response(request, lambda: workbench_chat(body, request, identity))
+
+
 @router.post("/workbench/chat")
 async def workbench_chat(body: WorkbenchChatRequest, request: Request, identity: Identity = Depends(get_identity)):
     if request.app.state.vector_service is None:
@@ -114,7 +131,8 @@ async def workbench_chat(body: WorkbenchChatRequest, request: Request, identity:
         snapshot = await asyncio.to_thread(corpus_snapshot, request.app.state.document_repository, identity)
         result = await scoped.run(chat_body, identity, include_trace=True,
             retrieval_options={"mode": body.retrieval.mode, "ef_search": body.retrieval.ef_search},
-            effective_config=actual)
+            effective_config=actual,
+            **({"on_event": request.state.chat_events} if getattr(request.state, "chat_events", None) else {}))
         final_snapshot = await asyncio.to_thread(corpus_snapshot, request.app.state.document_repository, identity)
         metrics = (evaluate_imported(dataset, question, result["retrieval_trace"], snapshot) if dataset else
             await asyncio.to_thread(evaluate_trace, question, result["retrieval_trace"], identity, request.app.state.document_repository))

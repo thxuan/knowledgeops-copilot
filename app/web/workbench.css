@@ -265,7 +265,7 @@ h1 {
   grid-template-columns: 280px minmax(360px,1fr) 304px;
   align-items: stretch;
   gap: var(--space-4);
-  max-width: 860px;
+  max-width: 1480px;
   margin: 0 auto;
   height: auto;
 }
@@ -657,9 +657,9 @@ input:disabled,select:disabled {
   display: flex;
   align-items: center;
   gap: 8px;
-  font: 10px/1.5 var(--mono);
-  color: var(--muted);
-  margin-bottom: 8px;
+  font: 16px/1.5 var(--font);
+  color: var(--ink);
+  margin-bottom: 12px;
 }
 
 .message.user .message-body {
@@ -948,7 +948,9 @@ input:disabled,select:disabled {
   overflow: auto;
   margin-top: 16px;
   max-width: 100%;
-  border-top: 1px solid var(--border);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
 }
 
 table {
@@ -972,7 +974,15 @@ th,td {
 }
 
 th:first-child,td:first-child {
-  padding-left: 0;
+  padding-left: 18px;
+}
+
+th:last-child,td:last-child {
+  padding-right: 18px;
+}
+
+thead tr:first-child th {
+  border-top: 0;
 }
 
 td {
@@ -980,18 +990,33 @@ td {
 }
 
 td .row-title {
-  max-width: 210px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  width: clamp(240px, 27vw, 360px);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.7;
   color: var(--ink);
   display: block;
 }
 
 td .row-subtitle {
   display: block;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
-  margin-top: 3px;
+  margin-top: 5px;
+}
+
+td:first-child .row-subtitle {
+  max-width: 360px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.table-wrap td {
+  vertical-align: top;
+}
+
+.table-wrap .row-open:focus-visible {
+  outline-offset: 2px;
 }
 
 .table-empty {
@@ -1917,4 +1942,141 @@ button:not(:disabled):active {
     transition: none!important;
     scroll-behavior: auto!important;
   }
+}
+
+/* Useful starting points keep the empty conversation compact and actionable. */
+.workspace:has(.support-welcome) {max-width:1480px;}
+.conversation:has(.support-welcome) {height:auto;min-height:0;padding:0;}
+.chat-log:has(.support-welcome) {flex:none;min-height:0;overflow:visible;padding:8px 0 16px;}
+.support-welcome {max-width:none;margin:0;width:100%;}
+.welcome-heading {display:flex;gap:16px;align-items:flex-start;margin:4px 0 18px;}
+.welcome-symbol {display:grid;place-items:center;flex:none;width:48px;height:48px;border-radius:14px;background:var(--accent-soft);color:var(--accent);font-size:30px;}
+.welcome-kicker {font-size:11px;letter-spacing:.1em;color:var(--accent);}
+.support-welcome h3 {font-size:26px;font-weight:600;margin:4px 0 6px;line-height:1.4;}
+.welcome-heading p {margin:0;color:var(--muted);font-size:14px;}
+.welcome-tasks {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;}
+.welcome-task {display:flex;flex-direction:column;text-align:left;gap:7px;padding:18px;border:1px solid var(--border);border-radius:10px;background:#fafcfb;min-width:0;transition:background .15s,border-color .15s;}
+.welcome-task:hover {border-color:var(--accent);background:var(--accent-soft);}
+.task-category {display:flex;align-items:center;gap:9px;color:var(--accent);font-size:12px;font-weight:600;width:100%;}
+.task-category>span:first-child {font-family:var(--mono);color:var(--muted);font-size:11px;}
+.task-arrow {margin-left:auto;font-size:16px;}
+.welcome-task strong {font-size:17px;font-weight:600;color:var(--ink);}
+.task-description {font-size:13px;line-height:1.7;color:var(--muted);}
+.task-example {font-size:12px;color:var(--accent);margin-top:4px;padding-top:10px;border-top:1px solid var(--border);width:100%;}
+.welcome-bottom {display:flex;gap:14px;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-top:18px;font-size:12px;color:var(--muted);}
+.welcome-bottom>div {display:flex;gap:18px;}
+.welcome-bottom a {text-decoration:none;}
+.welcome-bottom a:hover {text-decoration:underline;}
+.support-welcome .welcome-footnote {font-size:11px;margin:10px 0 0;line-height:1.6;color:var(--muted);}
+.conversation:has(.support-welcome) .composer {margin-top:0;}
+@media(max-width:700px){
+ .welcome-tasks {gap:10px;}
+ .welcome-task {padding:14px;}
+ .support-welcome h3 {font-size:22px;}
+ .welcome-heading {gap:12px;margin-bottom:18px;}
+ .welcome-symbol {width:38px;height:38px;font-size:24px;}
+ .welcome-task strong {font-size:15px;}
+ .task-description {font-size:12px;}
+}
+@media(max-width:480px){
+ .welcome-tasks {grid-template-columns:1fr;}
+ .welcome-bottom {align-items:flex-start;flex-direction:column;}
+ .task-example {margin-top:0;}
+}
+
+/* Batch reviews bind to an individual run and stay in the selected batch. */
+.run-review-cell .text-button {display:block;padding:4px 0;}
+.batch-review-actions,.review-navigation-actions,.review-save-actions {display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:14px;}
+.review-dialog {width:min(900px,calc(100% - 28px));}
+.review-navigation {border-block:1px solid var(--border);padding:16px 0;margin:16px 0;}
+.review-navigation .field {display:flex;flex-direction:column;gap:6px;}
+.review-navigation select {width:100%;min-width:0;}
+.review-navigation-actions p {margin:0;}
+.review-answer {padding:16px;background:var(--sidebar);border-radius:6px;margin:14px 0;}
+.review-answer h4 {margin:0 0 8px;color:var(--accent);}
+.review-answer p,.review-evidence p {white-space:pre-wrap;overflow-wrap:anywhere;}
+.review-answer p {margin:0;}
+.review-sources {margin:16px 0;}
+.review-evidence {padding:12px 0;border-top:1px solid var(--border);font-size:13px;}
+.review-save-actions {position:sticky;bottom:-25px;background:var(--surface);border-top:1px solid var(--border);padding:16px 0;margin-top:16px;}
+
+/* Keep the selected dataset and its controls in one compact, readable area. */
+.evaluation-setup {padding:20px 0;max-width:1200px;}
+.evaluation-heading {justify-content:flex-start;align-items:center;gap:20px;}
+.evaluation-heading h2 {margin:0;}
+.evaluation-heading .field-help {margin:4px 0 0;}
+.evaluation-heading #welcome-import {flex:none;}
+.evaluation-setup:has(#dataset-panel:not([hidden])) #welcome-import {display:none;}
+.question-picker:has(#dataset-panel:not([hidden]))>label,
+.question-picker:has(#dataset-panel:not([hidden]))>select {display:none;}
+#dataset-panel {max-width:none;display:grid;grid-template-columns:minmax(240px,1fr) auto;gap:10px 24px;align-items:center;padding:18px 20px;margin-top:14px;background:var(--sidebar);border:1px solid var(--border);border-radius:8px;}
+#dataset-panel[hidden] {display:none;}
+.dataset-meta {min-width:0;}
+.dataset-heading {justify-content:flex-start;gap:12px;flex-wrap:wrap;}
+.dataset-heading strong {font-size:15px;overflow-wrap:anywhere;}
+#replace-dataset {padding:5px 10px;min-height:30px;font-size:12px;}
+#dataset-summary {margin:8px 0 0;}
+.dataset-controls {display:flex;gap:12px;align-items:flex-end;}
+#dataset-panel .field {margin:0;max-width:none;display:flex;flex-direction:column;gap:5px;}
+#dataset-split {width:200px;max-width:100%;}
+#start-dataset {white-space:nowrap;}
+#dataset-progress {grid-column:1/-1;margin:0!important;font-size:12px;}
+/* Comparison selection replaces the ambiguous row-level A/B toggle buttons. */
+.comparison-picker {display:grid;grid-template-columns:minmax(0,1fr) 26px minmax(0,1fr);align-items:end;gap:12px;margin-top:20px;}
+.comparison-picker .field {display:flex;flex-direction:column;gap:7px;min-width:0;}
+.comparison-picker select {width:100%;min-width:0;}
+.comparison-direction {align-self:center;text-align:center;color:var(--accent);margin-top:18px;}
+.comparison-filter {display:flex;gap:8px;align-items:center;margin:12px 0;font-size:13px;}
+.comparison-question {white-space:pre-wrap;font-weight:600;overflow-wrap:anywhere;}
+.comparison-empty {padding:24px;background:var(--sidebar);border:1px dashed var(--border);border-radius:8px;color:var(--muted);}
+#comparison-content .compare-column {min-width:0;}
+@media(max-width:850px){
+ #dataset-panel {grid-template-columns:1fr;}
+ .dataset-controls {justify-content:flex-start;}
+ #dataset-progress {grid-column:auto;}
+}
+@media(max-width:600px){
+ #dataset-panel {padding:14px;}
+ .dataset-controls {flex-wrap:wrap;align-items:flex-end;}
+ #dataset-split {width:180px;}
+ .comparison-picker {grid-template-columns:1fr;}
+ .comparison-direction {display:none;}
+ .evaluation-heading {align-items:flex-start;flex-direction:column;gap:10px;}
+}
+
+#experiment-rows .selected-run {background:var(--accent-soft);}
+
+/* An empty conversation is a compact task launcher; chat transcripts keep their scroll area. */
+.conversation:has(.support-welcome) .panel-heading {padding-top:6px;}
+.conversation:has(.support-welcome) .run-context {padding-bottom:8px;}
+.conversation:has(.support-welcome) .composer {padding:14px 16px;}
+.conversation:has(.support-welcome) .composer textarea {min-height:58px;}
+
+@media(min-width:1600px){
+ .support-welcome .welcome-tasks {grid-template-columns:repeat(4,minmax(0,1fr));}
+ .support-welcome .welcome-task {padding:18px 16px;}
+ .support-welcome .task-example {margin-top:auto;}
+}
+
+/* Wide conversation layout with readable speaker identity and draft status. */
+main:has(>#chat-view:not([hidden])) {max-width:1680px;}
+.workspace {width:100%;}
+.chat-log {padding:20px 8px 20px 0;scrollbar-gutter:stable;}
+.message {padding:18px 20px;margin:0 0 18px;border:1px solid var(--border);border-radius:10px;}
+.message.user {background:#f6f8f6;}
+.message.user .message-body {background:transparent;padding:0;font-size:15px;line-height:1.8;}
+.message.assistant .message-body {font-size:15px;line-height:1.85;}
+.message-avatar {display:inline-grid;place-items:center;width:32px;height:32px;flex:none;border-radius:8px;background:var(--accent);color:white;font-size:13px;font-weight:700;}
+.message.user .message-avatar {background:#e0e9e3;color:var(--accent);}
+.message-label strong {font-weight:650;}
+.message-footer {font-size:12px;}
+.streaming-status {font-size:12px;color:var(--accent);margin:0 0 12px;}
+.streaming-preview {white-space:pre-wrap;overflow-wrap:anywhere;}
+.streaming-preview:empty {display:none;}
+.streaming-message {background:#fbfdfb;}
+@media(max-width:700px){
+ .message {padding:14px;margin-bottom:14px;}
+ .message-label {font-size:14px;}
+ .message-avatar {width:28px;height:28px;}
+ .message.user .message-body,.message.assistant .message-body {font-size:14px;}
 }

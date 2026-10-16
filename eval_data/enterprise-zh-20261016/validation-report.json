@@ -1,0 +1,57 @@
+{
+  "validation_date": "2026-10-16",
+  "validation_scope": "static dataset schema, exact current parsed document spans, source/version/hash/parser and ACL; read-only database snapshot",
+  "knowledge_qa": {
+    "engineer-qa.jsonl": {
+      "questions": 80,
+      "bytes": 99313,
+      "types": {
+        "fact": 41,
+        "policy": 13,
+        "cross_document": 16,
+        "unanswerable": 10
+      },
+      "source_spans": 224,
+      "covered_documents": 54,
+      "dataset_fingerprint": "b6c89aa9aed2b4ad1b8a2ceee7039cea2c0c99b0bab926c4c7ca4135889105e8",
+      "schema_valid": true,
+      "current_source_versions_valid": true,
+      "current_text_hashes_valid": true,
+      "parser_versions_valid": true,
+      "character_spans_match_reference": true,
+      "engineer_acl_valid": true
+    },
+    "engineer-smoke.jsonl": {
+      "questions": 12,
+      "bytes": 14992,
+      "types": {
+        "fact": 4,
+        "policy": 2,
+        "cross_document": 4,
+        "unanswerable": 2
+      },
+      "source_spans": 33,
+      "covered_documents": 14,
+      "dataset_fingerprint": "598a0f981af84290c171dfa67157fad60aff0b5df6cf0c50c20b98f57c5c6131",
+      "schema_valid": true,
+      "current_source_versions_valid": true,
+      "current_text_hashes_valid": true,
+      "parser_versions_valid": true,
+      "character_spans_match_reference": true,
+      "engineer_acl_valid": true
+    }
+  },
+  "smoke_is_exact_subset": true,
+  "snapshot_documents": 55,
+  "manifest_matches_current_sources": true,
+  "manual_agent_cases": 12,
+  "manual_agent_tool_names_valid": true,
+  "runtime_fingerprint_at_creation": "2416db4f80481ad677a11379e75d27245cdc6cf97c70315e86cf88fe2509c83c",
+  "model_calls": 0,
+  "embedding_calls": 0,
+  "agent_runs": 0,
+  "retrieval_evaluations": 0,
+  "database_writes": 0,
+  "answer_correctness": "not_evaluated; manual review required",
+  "agent_outcomes": "not_run"
+}

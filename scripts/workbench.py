@@ -18,6 +18,15 @@ if __name__ == "__main__":
                 os.environ['KNOWLEDGEOPS_DATABASE_URL'] = make_conninfo(DEFAULT_DATABASE_URL, options='-c search_path=ko_samples,public')
         except Exception:
             pass  # Normal startup will report database availability.
+    # The bundled local demo has a dedicated SELECT-only reader provisioned by setup_agent_demo.py.
+    if not os.getenv("KNOWLEDGEOPS_AGENT_BUSINESS_DATABASE_URL"):
+        from psycopg.conninfo import conninfo_to_dict, make_conninfo
+        from app.db.postgres import DEFAULT_DATABASE_URL
+        source_url = os.getenv("KNOWLEDGEOPS_DATABASE_URL") or os.getenv("KNOWLEDGEOPS_VECTOR_DATABASE_URL") or DEFAULT_DATABASE_URL
+        info = conninfo_to_dict(source_url)
+        if (info.get("host"), info.get("port"), info.get("dbname"), info.get("user")) == ("127.0.0.1", "55432", "knowledgeops", "knowledgeops"):
+            os.environ["KNOWLEDGEOPS_AGENT_BUSINESS_DATABASE_URL"] = make_conninfo(
+                source_url, user="knowledgeops_agent_reader", password="local-agent-read-only")
     import uvicorn
     # Do not strip or replace the user's generation, embedding or Agent settings.
     print("KnowledgeOps: http://127.0.0.1:8000/ — configure a real model in Model settings", flush=True)

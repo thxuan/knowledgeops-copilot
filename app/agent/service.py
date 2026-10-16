@@ -74,7 +74,7 @@ class AgentService:
                                 embedding = self.retrieval.vectors.settings
                                 if embedding.provider == "compatible":
                                     if embedding.cost_per_million_tokens is None:
-                                        raise AppError("UNPRICED_TOOL", "Set embedding price before paid Agent retrieval", 422)
+                                        raise AppError("UNPRICED_TOOL", "请在连接设置中填写 Embedding 单价并应用后，重新发起任务；本轮工具尚未执行。", 422)
                                     query = json.loads(call["function"]["arguments"])["query"]
                                     tokens = (len(query.encode())+256)*embedding.max_attempts*3
                                     cost = tokens*embedding.cost_per_million_tokens/1e6
@@ -227,7 +227,7 @@ class AgentService:
                             result = {"value": calculate(CalculatorArguments(left=Decimal(str(arguments["left"])),
                                 right=Decimal(str(arguments["right"])), operator=arguments["operator"]))}
                         elif name == "query_business_data":
-                            result = await asyncio.to_thread(self.repo.business, identity, arguments["query"])
+                            result = await asyncio.to_thread(self.repo.business, identity, arguments["query"], **({"ticket_id": arguments["ticket_id"]} if arguments.get("ticket_id") else {}))
                         elif name == "search_knowledge_base":
                             if self.retrieval is None:
                                 raise AppError("RETRIEVAL_NOT_CONFIGURED", "Retrieval unavailable", 503)

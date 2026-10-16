@@ -8,6 +8,7 @@ from app.core.errors import AppError
 from app.generation.context import build_context, retrieval_query, estimate_tokens
 from app.generation.models import GeneratedAnswer, REFUSAL, parse_generation, resolve_citations, grounded_answer
 from app.generation.review import review_messages
+from app.generation.streaming import claims_preview
 
 logger = logging.getLogger("knowledgeops.generation")
 
@@ -66,8 +67,12 @@ class ChatService:
         self.conversations, self.vectors = conversations, vectors
         self.client, self.settings = client, settings
 
-    async def run(self, body, identity, *, include_trace=False, retrieval_options=None, effective_config=None):
+    async def run(self, body, identity, *, include_trace=False, retrieval_options=None, effective_config=None, on_event=None):
         started = time.perf_counter()
+        async def notify(kind, data):
+            if on_event:
+                await on_event(kind, data)
+        await notify("phase", {"stage": "retrieval"})
         if self.vectors is None:
             raise AppError("VECTOR_NOT_CONFIGURED", "Set KNOWLEDGEOPS_VECTOR_DATABASE_URL first", 503)
         history_started = time.perf_counter()
@@ -105,8 +110,34 @@ class ChatService:
                 attempts += 1
                 try:
                     call_started = time.perf_counter()
-                    raw = await asyncio.wait_for(self.client.generate(context.messages, self.settings),
-                                                 self.settings.timeout_seconds)
+                    await notify("reset", {"phase": phase})
+                    await notify("phase", {"stage": "review" if phase == "review" else "generating"})
+                    if on_event and hasattr(self.client, "generate_stream"):
+                        partial, last_preview, last_at = "", "", 0.0
+
+                        async def delta(text):
+                            nonlocal partial, last_preview, last_at
+                            partial += text
+                            now = time.perf_counter()
+                            if len(partial.encode("utf-8")) > self.settings.output_limit * 16:
+                                raise ValueError("Invalid or excessive model output")
+                            if now - last_at < .04:
+                                return
+                            preview = claims_preview(partial)
+                            if preview != last_preview:
+                                await notify("preview", {"text": preview, "phase": phase})
+                                last_preview, last_at = preview, now
+
+                        raw = await asyncio.wait_for(
+                            self.client.generate_stream(context.messages, self.settings, delta),
+                            self.settings.timeout_seconds)
+                        preview = claims_preview(str(raw))
+                        if preview != last_preview:
+                            await notify("preview", {"text": preview, "phase": phase})
+                    else:
+                        raw = await asyncio.wait_for(self.client.generate(context.messages, self.settings),
+                                                     self.settings.timeout_seconds)
+                    await notify("phase", {"stage": "validating"})
                     metadata = getattr(raw, "metadata", {})
                     usage = metadata.get("usage", {}) if isinstance(metadata, dict) else {}
                     model_usage.append({"phase": phase, "attempt": attempts,
@@ -203,6 +234,7 @@ class ChatService:
                 "validation_failures": validation_failures, "answer_mode": answer_mode}}
         if effective_config is not None:
             response["context"]["effective_config"] = effective_config
+        await notify("phase", {"stage": "saving"})
         commit_started = time.perf_counter()
         await asyncio.to_thread(self.conversations.commit, snapshot, identity, body.message, response,
                                 context.evidence, self.settings.summary_budget)

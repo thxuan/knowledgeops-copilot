@@ -54,6 +54,7 @@ class ProviderConnection(BaseModel):
 class EmbeddingConnection(ProviderConnection):
     dimensions: int = Field(default=1024, ge=1, le=2000)
     collection: str = Field(min_length=1, max_length=150, pattern=r'^[a-zA-Z0-9_.-]+$')
+    cost_per_million_tokens: float | None = Field(default=None, ge=0, allow_inf_nan=False)
 
 class Connections(BaseModel):
     database: DatabaseConnection
@@ -85,8 +86,14 @@ def provider_key(body, current_url, current_key):
 
 def embedding_candidate(app, body):
     e = app.state.settings.embedding
+    same_model = (e.provider == 'compatible' and body.base_url == e.base_url.rstrip('/')
+                  and body.model_id == e.model_id and body.dimensions == e.dimensions)
+    # Omitted prices may reuse the same model's price; another model must be priced explicitly.
+    price = (body.cost_per_million_tokens if 'cost_per_million_tokens' in body.model_fields_set
+             else e.cost_per_million_tokens if same_model else None)
     result = replace(e, provider='compatible', model_id=body.model_id, base_url=body.base_url,
-                     api_key=provider_key(body, e.base_url, e.api_key), dimensions=body.dimensions, collection=body.collection)
+                     api_key=provider_key(body, e.base_url, e.api_key), dimensions=body.dimensions,
+                     collection=body.collection, cost_per_million_tokens=price)
     result.validate()
     return result
 
@@ -106,7 +113,8 @@ async def connections(request: Request, identity: Identity = Depends(get_identit
     return {'database': db_view(s.database_url),
             'embedding': {'base_url': e.base_url if e.provider == 'compatible' else '',
                           'model_id': e.model_id if e.provider == 'compatible' else '', 'dimensions': e.dimensions,
-                          'collection': e.collection, 'key_present': bool(e.api_key), 'configured': e.provider == 'compatible'},
+                          'collection': e.collection, 'key_present': bool(e.api_key), 'configured': e.provider == 'compatible',
+                          'cost_per_million_tokens': e.cost_per_million_tokens},
             'rerank': {'base_url': r.endpoint if r.provider == 'compatible' else '', 'model_id': r.model_id,
                        'key_present': bool(r.api_key), 'configured': r.provider == 'compatible'}, 'storage': 'server_memory'}
 

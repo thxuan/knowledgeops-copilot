@@ -1,0 +1,47 @@
+/* Shared navigation and identity control for every workspace page. */
+html {scrollbar-gutter:stable;}
+.app-header.topbar {
+  display:flex; align-items:center; flex-wrap:nowrap; gap:28px;
+  min-height:60px; padding:0 28px; flex:none;
+  background:#fff; border-bottom:1px solid var(--border);
+}
+.app-header.topbar .brand {font-size:17px; flex:none;}
+.app-header.topbar .workspace-nav {
+  display:flex; align-items:center; align-self:stretch; flex-wrap:nowrap;
+  order:0; width:auto; gap:22px; min-width:0; min-height:0;
+}
+.app-header.topbar .workspace-nav a {
+  display:flex; align-items:center; min-height:60px;
+  padding:14px 0; white-space:nowrap; font-size:13px;
+}
+.app-header.topbar .top-actions {
+  display:flex; align-items:center; gap:0; flex:none; flex-wrap:nowrap; margin-left:auto;
+}
+.app-header.topbar .header-identity {display:flex; align-items:center; gap:8px; flex:none; margin:0;}
+.app-header.topbar .header-identity label {
+  display:block; font-size:12px; font-weight:400; line-height:1.5;
+  white-space:nowrap; color:var(--muted); margin:0;
+}
+.app-header.topbar .header-identity select {
+  width:124px; min-height:38px; padding:7px 10px; font-size:13px;
+  line-height:1.5; border:1px solid var(--control-border); border-radius:6px; background:#fff;
+}
+@media(max-width:900px) {
+  .app-header.topbar {flex-wrap:wrap; padding:8px 14px; gap:8px 14px;}
+  .app-header.topbar .brand {font-size:16px;}
+  .app-header.topbar .workspace-nav {
+    order:3; width:100%; min-height:44px; gap:20px;
+    overflow-x:auto; scrollbar-width:none;
+  }
+  .app-header.topbar .workspace-nav a {min-height:44px; padding:9px 0; font-size:12px;}
+}
+@media(max-width:520px) {
+  .app-header.topbar {padding-inline:12px; gap:8px 12px;}
+  .app-header.topbar .header-identity {gap:6px;}
+  .app-header.topbar .header-identity label {font-size:11px;}
+  .app-header.topbar .header-identity select {width:108px; font-size:12px; min-height:38px;}
+}
+
+@media(max-width:359px) {
+  .app-header.topbar .header-identity select {width:100px;}
+}

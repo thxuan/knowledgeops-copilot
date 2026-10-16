@@ -426,3 +426,159 @@ def test_committed_ticket_state_is_delivered_to_model_after_restart(agent_env):
     assert saved['status'] == 'committed' and saved['approval_status'] == 'approved'
     restored.approve(pending['run_id'], identity, approval)
     assert ticket_count(restored, pending['run_id']) == 1
+
+
+def ticket_proposal(repo, identity):
+    """Create a pending repository action without invoking a model or Agent worker."""
+    args = {"title": "VPN configuration help", "description": "Please check the managed VPN client."}
+    state = repo.create(identity, "Prepare a ticket", uuid4().hex, "ticket-ui-test")
+    state, token = repo.claim(state["run_id"], identity)
+    state["messages"].append({"role": "assistant", "content": None, "tool_calls": [{
+        "id": "ticket-call", "type": "function",
+        "function": {"name": "create_ticket", "arguments": json.dumps(args)}}]})
+    state["seen"].append(json.dumps(["create_ticket", args], ensure_ascii=False, sort_keys=True, separators=(",", ":")))
+    return repo.propose(state, identity, token, "ticket-call", args)
+
+
+def test_ticket_revision_invalidates_old_approval_and_commits_edited_content(agent_env):
+    from app.agent.contracts import ProposalRevision
+    repo, identity = agent_env
+    state = ticket_proposal(repo, identity)
+    old = approval_for(state)
+    arguments = {"title": "VPN TL-403 investigation", "description": "Asset ENG-001; patch update is pending."}
+    revised = repo.revise_proposal(state["run_id"], identity, ProposalRevision(
+        action_id=old.action_id, version=old.version, digest=old.digest, arguments=arguments))
+    assert revised["status"] == "waiting_approval"
+    assert revised["pending"]["version"] == old.version + 1
+    assert revised["pending"]["digest"] != old.digest
+    assert ticket_count(repo, state["run_id"]) == 0
+    with pytest.raises(AppError) as error:
+        repo.approve(state["run_id"], identity, old)
+    assert error.value.code == "APPROVAL_MISMATCH"
+    current = approval_for(revised)
+    committed = repo.approve(state["run_id"], identity, current)
+    repo.approve(state["run_id"], identity, current)
+    assert ticket_count(repo, state["run_id"]) == 1
+    result = committed["trace"][-1]["result"]
+    detail = repo.get_ticket(result["ticket_id"], identity)
+    assert detail["title"] == arguments["title"] and detail["description"] == arguments["description"]
+    assert detail["approval_version"] == current.version and detail["created_at"] > 0
+    call = next(c for m in committed["messages"] for c in m.get("tool_calls", []) if c["id"] == "ticket-call")
+    assert json.loads(call["function"]["arguments"]) == arguments
+    assert any(e["type"] == "proposal_revised" for e in detail["timeline"])
+
+
+def test_ticket_reads_and_edits_are_scoped_to_owner_and_tenant(agent_env):
+    from app.agent.contracts import ProposalRevision
+    repo, identity = agent_env
+    state = ticket_proposal(repo, identity)
+    approval = approval_for(state)
+    other = Identity("other-ticket-reader", identity.tenant_id, identity.audiences)
+    other_tenant = Identity(identity.user_id, "other-ticket-tenant", identity.audiences)
+    revision = ProposalRevision(action_id=approval.action_id, version=approval.version, digest=approval.digest,
+                                arguments={"title": "Different title", "description": "Different description"})
+    for outsider in (other, other_tenant):
+        with pytest.raises(AppError) as error:
+            repo.revise_proposal(state["run_id"], outsider, revision)
+        assert error.value.status_code == 404
+    committed = repo.approve(state["run_id"], identity, approval)
+    tid = committed["trace"][-1]["result"]["ticket_id"]
+    assert repo.list_tickets(identity)["total"] == 1
+    for outsider in (other, other_tenant):
+        assert repo.list_tickets(outsider)["total"] == 0
+        with pytest.raises(AppError) as error:
+            repo.get_ticket(tid, outsider)
+        assert error.value.code == "TICKET_NOT_FOUND"
+
+
+def test_ticket_edit_race_and_approval_expiry_do_not_write(agent_env):
+    from app.agent.contracts import ProposalRevision
+    repo, identity = agent_env
+    state = ticket_proposal(repo, identity)
+    pending = state["pending"]
+    def revise(title):
+        try:
+            return repo.revise_proposal(state["run_id"], identity, ProposalRevision(
+                action_id=pending["action_id"], version=pending["version"], digest=pending["digest"],
+                arguments={"title": title, "description": "Same initial proposal, competing edits."}))
+        except AppError as exc:
+            return exc.code
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(revise, ["First edited title", "Second edited title"]))
+    assert sum(isinstance(r, dict) for r in results) == 1
+    assert "APPROVAL_MISMATCH" in results
+    assert ticket_count(repo, state["run_id"]) == 0
+    latest = repo.get(state["run_id"], identity)["pending"]
+    with repo.connection() as db:
+        db.execute("UPDATE ko_agent_actions SET expires_at=0 WHERE action_id=%s", (latest["action_id"],))
+    with pytest.raises(AppError) as error:
+        repo.revise_proposal(state["run_id"], identity, ProposalRevision(
+            action_id=latest["action_id"], version=latest["version"], digest=latest["digest"],
+            arguments={"title": "Expired edit", "description": "Must not replace an expired action."}))
+    assert error.value.code == "APPROVAL_EXPIRED"
+    assert ticket_count(repo, state["run_id"]) == 0
+
+
+def test_cancelled_ticket_proposal_cannot_be_edited(agent_env):
+    from app.agent.contracts import ProposalRevision
+    repo, identity = agent_env
+    state = ticket_proposal(repo, identity)
+    pending = state["pending"]
+    repo.cancel(state["run_id"], identity)
+    with pytest.raises(AppError) as error:
+        repo.revise_proposal(state["run_id"], identity, ProposalRevision(
+            action_id=pending["action_id"], version=pending["version"], digest=pending["digest"],
+            arguments={"title": "Late edit", "description": "Cancelled proposals stay cancelled."}))
+    assert error.value.code == "INVALID_STATE"
+    assert repo.list_tickets(identity)["items"] == []
+
+
+def test_business_upgrade_preserves_values_and_revoked_permission(agent_env):
+    from psycopg.types.json import Jsonb
+    repo, identity = agent_env
+    old = {"compliant": True, "reason": "Custom verified value", "asset_id": "CUSTOM-ASSET"}
+    with repo.connection() as db:
+        db.execute("UPDATE ko_agent_business SET payload=%s WHERE tenant_id=%s AND user_id=%s AND query='device_status'",
+                   (Jsonb(old), identity.tenant_id, identity.user_id))
+        db.execute("UPDATE ko_agent_permissions SET can_write=false WHERE tenant_id=%s AND user_id=%s",
+                   (identity.tenant_id, identity.user_id))
+    repo.seed_business(identity)
+    with repo.connection() as db:
+        payload = db.execute("SELECT payload FROM ko_agent_business WHERE tenant_id=%s AND user_id=%s AND query='device_status'",
+                             (identity.tenant_id, identity.user_id)).fetchone()["payload"]
+        permission = db.execute("SELECT can_write FROM ko_agent_permissions WHERE tenant_id=%s AND user_id=%s",
+                                (identity.tenant_id, identity.user_id)).fetchone()["can_write"]
+    assert all(payload[k] == v for k, v in old.items())
+    assert payload["observed_at"] is None and payload["edr_status"] == "unknown"
+    assert permission is False
+    repo.seed_business(identity)
+    assert repo.business(identity, "device_status")["data"] == payload
+
+
+def test_account_query_cannot_read_another_identity(agent_env):
+    repo, identity = agent_env
+    account = repo.business(identity, "account_status")
+    assert account["simulated"] and account["data"]["mfa_methods_count"] >= 1
+    assert "password" not in account["data"] and "recovery_code" not in account["data"]
+    other = Identity("other-business-user", identity.tenant_id, identity.audiences)
+    with pytest.raises(AppError) as error:
+        repo.business(other, "account_status")
+    assert error.value.code == "BUSINESS_NOT_FOUND"
+
+
+def test_business_ticket_query_reads_only_committed_owner_tickets(agent_env):
+    repo, identity = agent_env
+    assert repo.business(identity, "ticket_status")["data"]["items"] == []
+    state = ticket_proposal(repo, identity)
+    assert repo.business(identity, "ticket_status")["data"]["items"] == []
+    committed = repo.approve(state["run_id"], identity, approval_for(state))
+    tid = committed["trace"][-1]["result"]["ticket_id"]
+    item = repo.business(identity, "ticket_status", ticket_id=tid)["data"]["items"][0]
+    assert item["ticket_id"] == tid and item["status"] == "created"
+    assert item["assignee"] is None and item["estimated_completion"] is None
+    for outsider in (Identity("other-business-user", identity.tenant_id, identity.audiences),
+                     Identity(identity.user_id, "other-business-tenant", identity.audiences)):
+        assert repo.business(outsider, "ticket_status")["data"]["items"] == []
+        with pytest.raises(AppError) as error:
+            repo.business(outsider, "ticket_status", ticket_id=tid)
+        assert error.value.code == "TICKET_NOT_FOUND"
