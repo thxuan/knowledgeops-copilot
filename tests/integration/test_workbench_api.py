@@ -110,6 +110,32 @@ def test_no_fake_quality_for_free_modified_or_historical_questions(workbench_app
     assert followup['evaluation']['status'] == 'unavailable'
 
 
+def test_free_turn_replays_immutable_history_without_appending_to_live_conversation(workbench_app):
+    _, client, _ = workbench_app
+    def free(message, **fields):
+        result = client.post('/workbench/chat', headers=HEADERS, json={'message': message, 'top_k': 3, **fields})
+        assert result.status_code == 200, result.text
+        return result.json()
+    first = free('TL-403 应该怎么处理？')
+    second = free('这个错误还需要检查什么？', conversation_id=first['conversation_id'])
+    original = second['context']['history_snapshot']
+    assert [item['content'] for item in original['messages']] == ['TL-403 应该怎么处理？']
+    free('我又遇到了新的问题', conversation_id=first['conversation_id'])
+    before = client.get('/conversations/'+first['conversation_id'], headers=HEADERS).json()
+    replay = free('这个错误还需要检查什么？', replay_context_id=original['id'])
+    after = client.get('/conversations/'+first['conversation_id'], headers=HEADERS).json()
+    assert replay['context']['history_snapshot'] == original
+    assert replay['context']['history_message_ids'] == second['context']['history_message_ids']
+    assert after == before
+    assert replay['evaluation']['status'] == 'unavailable'
+    mismatch = client.post('/workbench/chat', headers=HEADERS, json={'message': '不同的问题', 'top_k': 3, 'replay_context_id': original['id']})
+    assert mismatch.status_code == 422
+    denied = client.post('/workbench/chat', headers={'X-Local-User-Id':'u_employee_001'}, json={'message':'这个错误还需要检查什么？','top_k':3,'replay_context_id':original['id']})
+    assert denied.status_code == 404
+    mixed = client.post('/workbench/chat', headers=HEADERS, json={'message':'这个错误还需要检查什么？','top_k':3,'replay_context_id':original['id'],'conversation_id':first['conversation_id']})
+    assert mixed.status_code == 422
+
+
 def test_cross_document_metrics_and_all_profiles(workbench_app):
     _,client,_ = workbench_app
     for profile in ['ranked','coverage','multi_query']:

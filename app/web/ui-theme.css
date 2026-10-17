@@ -1,0 +1,143 @@
+:root {
+  --surface-page:#f6f7f5;
+  --surface-content:#fff;
+  --surface-raised:#fbfcfa;
+  --surface-selected:#eaf1ec;
+  --ink:#24332b;
+  --muted:#58675e;
+  --border:#e1e7e1;
+  --control-border:#bcc9bf;
+  --accent:#245944;
+  --accent-hover:#174331;
+  --accent-soft:var(--surface-selected);
+  --bg:var(--surface-page);
+  --surface:var(--surface-content);
+  --sidebar:var(--surface-raised);
+  --danger:#a02d28;
+  --radius:10px;
+  --radius-sm:8px;
+  --radius-card:12px;
+  --radius-input:16px;
+  --motion-fast:140ms;
+  --motion-panel:220ms;
+  --ease-out:cubic-bezier(.16,1,.3,1);
+  --shadow-float:0 12px 40px #20372a12,0 2px 8px #20372a08;
+  --glass-panel:rgba(255,255,255,.72);
+  --glass-strong:rgba(255,255,255,.94);
+  --glass-nav:rgba(255,255,255,.7);
+  --glass-inset:rgba(246,250,246,.78);
+  --glass-edge:rgba(255,255,255,.88);
+  --glass-blur:16px;
+  --shadow-glass:0 12px 36px rgba(36,67,46,.055),0 1px 3px rgba(36,67,46,.035),0 0 0 1px rgba(78,108,87,.055),inset 0 1px 0 rgba(255,255,255,.96);
+  --font:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+}
+body {background:radial-gradient(ellipse at 4% 0%,rgba(149,184,158,.22),transparent 48%),radial-gradient(ellipse at 100% 32%,rgba(179,199,174,.2),transparent 46%),linear-gradient(145deg,#edf2ed,#f8f9f6 52%,#eef3ec);}
+button,a,input,select,textarea,summary {transition:background-color var(--motion-fast) var(--ease-out),border-color var(--motion-fast) var(--ease-out),box-shadow var(--motion-fast) var(--ease-out);}
+button:disabled {cursor:not-allowed;}
+.primary-button,.secondary-button,.text-button {border-radius:var(--radius-sm);font-size:13px;min-height:38px;}
+.primary-button {background:var(--accent);color:#fff;box-shadow:0 1px 2px #173c2312;}
+.primary-button:hover:not(:disabled) {background:var(--accent-hover);}
+.primary-button:active:not(:disabled),.secondary-button:active:not(:disabled) {transform:scale(.98);}
+.secondary-button {border:1px solid var(--control-border);background:var(--surface-content);}
+.secondary-button:hover:not(:disabled),.text-button:hover:not(:disabled) {background:var(--surface-selected);}
+input:not([type=checkbox]):not([type=range]),select,textarea {background:var(--surface-content);border-color:var(--control-border);border-radius:var(--radius-sm);}
+:focus-visible {outline:2px solid var(--accent);outline-offset:3px;}
+.field-help,.scope-note,.sidebar-footer,.subtitle {color:var(--muted);font-size:13px;}
+.badge,.ticket-badge,.doc-status,.agent-status,.count,.value {font-variant-numeric:tabular-nums;}
+.notice {border-radius:var(--radius-sm);font-size:13px;}
+.app-header.topbar {background:var(--surface-content);gap:32px;}
+.app-header.topbar .brand {font-size:18px;letter-spacing:-.5px;}
+.app-header.topbar .workspace-nav {gap:24px;}
+.app-header.topbar .workspace-nav a {color:var(--muted);}
+.app-header.topbar .workspace-nav a[aria-current=page] {color:var(--accent);}
+.app-header.topbar .header-identity select {background:var(--surface-raised);border-color:var(--border);}
+main.management,main.tickets-page,main.business-page {padding-top:30px;padding-bottom:40px;}
+.heading-row h1 {font-size:24px;letter-spacing:-.5px;}
+.management .readiness-strip {background:var(--surface-content);border:1px solid var(--border);border-radius:var(--radius-card);padding:14px 18px;}
+.management .readiness-strip[data-ready=false] {background:#fff9ed;border-color:#e1ce9d;}
+.management .knowledge-layout {grid-template-columns:minmax(280px,.7fr) minmax(0,1.3fr);gap:20px;}
+.management .document-panel,.management .preview-panel {border:1px solid var(--border);border-radius:var(--radius-card);background:var(--surface-content);overflow:hidden;}
+.management .document-list {max-height:calc(100dvh - 360px);min-height:180px;scrollbar-width:thin;}
+.management .document-item {padding:12px 16px;}
+.management .document-item strong {margin-bottom:4px;line-height:1.6;}
+.management .document-item small {line-height:1.6;}
+.management .document-item:hover,.management .document-item[aria-pressed=true] {background:var(--surface-selected);}
+.management .document-item .doc-status {display:inline-block;font-size:12px;margin-top:5px;}
+.management .preview-panel>.detail-body {padding:0 20px 24px;}
+.management .preview-panel>.panel-heading {padding:20px;}
+.management .source-text,.management .chunk-card {background:var(--surface-raised);border-radius:var(--radius-sm);}
+.document-preview-tabs {display:flex;gap:4px;padding:4px;background:var(--surface-selected);border-radius:9px;margin:16px 0;}
+.document-preview-tabs button {padding:6px 14px;border-radius:6px;min-height:36px;font-size:13px;}
+.document-preview-tabs button[aria-pressed=true] {background:var(--surface-content);color:var(--accent);box-shadow:0 1px 3px #183b2610;}
+.management .index-settings {padding:12px 0;border-bottom:1px solid var(--border);}
+.management .index-settings>summary {font-size:13px;color:var(--accent);cursor:pointer;min-height:36px;}
+.management .index-settings[open]>summary {margin-bottom:12px;}
+.management #original-preview .source-text {max-height:560px;padding:18px;font:14px/1.9 var(--font);}
+.management .settings-section {background:var(--surface-content);border:1px solid var(--border);border-radius:var(--radius-card);padding:24px;margin-bottom:18px;}
+.management .settings-layout {gap:28px;}
+.management .settings-guide {font-size:13px;}
+.management .settings-guide small {display:block;}
+.management .settings-guide a {font-size:14px;}
+.management .settings-guide a:hover {color:var(--accent);}
+.management .save-bar {padding:14px 18px;border:1px solid var(--border);border-radius:var(--radius-card);background:var(--surface-content);}
+.management .generation-section {margin-top:20px;}
+.connection-status {display:inline-flex;align-items:center;padding:3px 9px;border-radius:999px;background:var(--surface-selected);color:var(--accent);font-size:12px;white-space:nowrap;margin-left:auto;}
+.connection-status[data-state=dirty] {background:#fff4dc;color:#785311;}
+.connection-status[data-state=error] {background:#fff0ee;color:var(--danger);}
+.business-card,.ticket-detail,.ticket-list {background:var(--surface-content);border:1px solid var(--border);border-radius:var(--radius-card);}
+.business-scope {border-radius:var(--radius-sm);font-size:13px;}
+.business-card h2 {font-size:17px;}
+.business-duration {border-radius:var(--radius-card);background:var(--surface-raised);}
+.experiments.panel,.evaluation-setup {background:var(--surface-content);border:1px solid var(--border);border-radius:var(--radius-card);}
+.table-wrap {scrollbar-width:thin;}
+table {font-variant-numeric:tabular-nums;}
+thead {background:var(--surface-raised);}
+dialog {border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-float);}
+dialog::backdrop {background:#15291f30;}
+dialog[open] {animation:panel-enter var(--motion-panel) var(--ease-out);}
+.side-dialog {border-radius:16px 0 0 16px;}
+.side-dialog .panel-heading {background:var(--surface-content);}
+.source-drawer {position:fixed;inset:12px 12px 12px auto;width:min(480px,calc(100% - 24px));height:calc(100dvh - 24px);max-height:none;margin:0;padding:22px;z-index:20;overflow:auto;}
+.source-drawer .dialog-heading {position:sticky;top:-22px;background:var(--surface-content);padding:12px 0;z-index:1;}
+.source-drawer .source-text {white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.9 var(--font);border:0;padding:16px;background:var(--surface-raised);border-radius:var(--radius-sm);max-height:none;}
+.source-drawer .field-help {overflow-wrap:anywhere;margin:12px 0;}
+.source-drawer .eyebrow {font-size:12px;color:var(--accent);}
+.source-drawer h2 {font-size:17px;}
+.app-header.topbar {position:relative;z-index:10;background:var(--glass-nav);border-bottom-color:var(--glass-edge);box-shadow:0 1px 0 rgba(67,100,77,.06);-webkit-backdrop-filter:blur(var(--glass-blur)) saturate(115%);backdrop-filter:blur(var(--glass-blur)) saturate(115%);}
+.workbench-page .view-switch {background:rgba(229,239,231,.68);box-shadow:inset 0 1px 0 rgba(255,255,255,.8);}
+.workbench-page .conversation,.workbench-page .conversation:has(.support-welcome),
+.management .document-panel,.management .preview-panel,.management .settings-section,.management .save-bar,.management .readiness-strip,
+.experiments.panel,.evaluation-setup,.business-card,.ticket-detail,.ticket-list-item,.ticket-history,.ticket-empty {
+  background:var(--glass-panel);border:1px solid var(--glass-edge);box-shadow:var(--shadow-glass);
+  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(110%);backdrop-filter:blur(var(--glass-blur)) saturate(110%);
+}
+.ticket-list {background:transparent;border:0;}
+.workbench-page .conversation-heading {background:rgba(255,255,255,.36);border-bottom-color:rgba(86,115,94,.08);}
+.workbench-page .transcript-area {background:rgba(255,255,255,.3);}
+.workbench-page .welcome-task {background:rgba(255,255,255,.64);border-color:rgba(255,255,255,.94);box-shadow:0 2px 10px rgba(36,67,46,.025),0 0 0 1px rgba(78,108,87,.065),inset 0 1px 0 #fff;}
+.workbench-page .welcome-task:hover {background:var(--glass-strong);border-color:var(--control-border);box-shadow:0 5px 16px rgba(36,67,46,.06);}
+.workbench-page .composer,.workbench-page .conversation:has(.support-welcome) .composer {background:var(--glass-strong);border-color:rgba(126,151,133,.34);box-shadow:0 8px 24px rgba(36,67,46,.06),inset 0 1px 0 #fff;}
+.workbench-page .composer:focus-within,.workbench-page .conversation:has(.support-welcome) .composer:focus-within {border-color:var(--accent);box-shadow:0 0 0 3px rgba(36,89,68,.1),0 8px 24px rgba(36,67,46,.06),inset 0 1px 0 #fff;}
+.workbench-page .answer-sources,.workbench-page .agent-sidebar,#dataset-panel,.batch-results:not(:empty) {background:var(--glass-inset);box-shadow:inset 0 1px 0 rgba(255,255,255,.85);}
+.table-wrap {background:var(--glass-strong);border-color:rgba(86,115,94,.14);}
+thead {background:rgba(244,248,243,.98);}
+.secondary-button {background:var(--glass-strong);}
+dialog,.debug-actions,.jump-latest {background:var(--glass-strong);border-color:var(--glass-edge);box-shadow:var(--shadow-float),inset 0 1px 0 #fff;-webkit-backdrop-filter:blur(var(--glass-blur));backdrop-filter:blur(var(--glass-blur));}
+.side-dialog .parameters,.side-dialog .inspector {background:transparent;}
+.side-dialog .panel-heading,.source-drawer .dialog-heading {background:var(--glass-strong);}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))) {:root {--glass-panel:#fcfdfa;--glass-nav:#fcfdfa;--glass-strong:#fff;}}
+@media(max-width:800px) {
+  :root {--glass-panel:rgba(255,255,255,.88);--glass-blur:10px;}
+  .workbench-page .conversation,.workbench-page .conversation:has(.support-welcome),
+  .management .document-panel,.management .preview-panel,.management .settings-section,.management .save-bar,.management .readiness-strip,
+  .experiments.panel,.evaluation-setup,.business-card,.ticket-detail,.ticket-list-item,.ticket-history,.ticket-empty {-webkit-backdrop-filter:none;backdrop-filter:none;}
+}
+@media(prefers-reduced-transparency:reduce),(prefers-contrast:more) {
+  :root {--glass-panel:#fff;--glass-nav:#fff;--glass-strong:#fff;--glass-inset:#f6f8f5;--glass-edge:var(--border);--glass-blur:0px;}
+}
+@keyframes panel-enter {from {opacity:0;transform:translateY(6px);}to {opacity:1;transform:translateY(0);}}
+@media(min-width:1100px) {body.workbench-page:has(#source-dialog[open]) main {padding-right:510px;}body.workbench-page:has(#source-dialog[open]) .answer-layout,body.workbench-page:has(#source-dialog[open]) .agent-layout {grid-template-columns:1fr;}}
+@media(max-width:900px) {.app-header.topbar {gap:8px 16px;}.app-header.topbar .workspace-nav {gap:22px;}}
+@media(max-width:800px) {.management .knowledge-layout {grid-template-columns:1fr;}.management .document-list {max-height:320px;}.management .settings-layout {grid-template-columns:1fr;}.management .settings-guide {position:static;padding:0;}.management .settings-guide ol {display:flex;flex-wrap:wrap;gap:8px 20px;margin:12px 0;}.management .settings-guide li {padding:0;}.management .settings-guide small {display:none;}.management .generation-section {max-width:none;margin:20px 0 0;}.management .settings-section {padding:18px;}}
+@media(max-width:520px) {main.management,main.tickets-page,main.business-page {padding:20px 14px;}.app-header.topbar .workspace-nav {gap:20px;}.heading-row h1 {font-size:21px;}.source-drawer {inset:0;width:100%;height:100dvh;border-radius:0;padding:18px;}.source-drawer .dialog-heading {top:-18px;}.management .save-bar {align-items:flex-start;flex-direction:column;}.connection-status {font-size:11px;}}
+@media(prefers-reduced-motion:reduce) {*,*::before,*::after {animation:none!important;transition:none!important;scroll-behavior:auto!important;}.primary-button:active:not(:disabled),.secondary-button:active:not(:disabled) {transform:none;}}

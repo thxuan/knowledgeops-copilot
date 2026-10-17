@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 const source=await readFile(new URL('../../app/web/experiment-cache.js',import.meta.url),'utf8');
 const {scopeKey,recover,remainingQuestions}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+const records=await import('data:text/javascript;base64,'+Buffer.from(await readFile(new URL('../../app/web/conversation-records.js',import.meta.url),'utf8')).toString('base64'));
 test('scope isolates identity, database, schema and collection without secrets',()=>{
  const c={database:{host:'localhost',port:55432,database:'kb',schema_name:'one',password:'secret'},embedding:{collection:'a',api_key:'key'}};
  const key=scopeKey('engineer',c);
@@ -29,15 +30,16 @@ test('workbench boot restores interrupted cache without starting model requests'
  function element(id=''){
   if(nodes.has(id)&&id)return nodes.get(id);
   const n={id,value:id==='identity'?'u_engineer_001':'',type:'',checked:false,hidden:false,disabled:false,options:[],children:[],dataset:{},style:{},classList:{add(){},remove(){},toggle(){}},
-   cloneNode(){return element();},addEventListener(){},setAttribute(){},append(...xs){this.children.push(...xs);},replaceChildren(...xs){this.children=xs;},after(){},remove(){},closest(){return element();},checkValidity(){return true;},focus(){}};
+   cloneNode(){return element();},querySelectorAll(){return [];},addEventListener(){},setAttribute(){},append(...xs){this.children.push(...xs);},replaceChildren(...xs){this.children=xs;},after(){},remove(){},closest(){return element();},checkValidity(){return true;},focus(){}};
   if(id)nodes.set(id,n);return n;
  }
  const saved={version:1,dataset:{id:'old',name:'test.jsonl',fingerprint:'f',count:1,source_labels:0,splits:{dev:1},questions:[{question_id:'q1',question:'test',split:'dev'}]},datasetUpload:{filename:'test.jsonl',content:'{}'},evaluationMode:true,batches:[{id:'b',status:'running',dataset:{fingerprint:'f'},completed:0,errors:0}],runs:[],failures:[],current:null,a:null,b:null,last:null,fields:{}};
  const calls=[];
  const config={generation:{ready:false,temperature:0,output_limit:2048,input_limit:32000,models:[],coverage_review:false},retrieval:{strategy:'vector',candidate_k:20,rrf_constant:60,rerank_available:false}};
  const connection={database:{host:'localhost',port:55432,database:'kb',schema_name:'test'},embedding:{collection:'c'}};
- const sandbox={console,structuredClone,AbortController,Event,URLSearchParams,location:{search:''},crypto:globalThis.crypto,setTimeout:()=>0,clearTimeout(){},sessionStorage:{getItem(){return null;}},
-  document:{getElementById:element,createElement:()=>element(),querySelectorAll:()=>[],addEventListener(){}},window:{addEventListener(){}},
+ const sandbox={console,records,structuredClone,AbortController,Event,URLSearchParams,location:{search:''},crypto:globalThis.crypto,setTimeout:()=>0,clearTimeout(){},sessionStorage:{getItem(){return null;}},
+  document:{getElementById:element,createElement:()=>element(),querySelector:()=>element(),querySelectorAll:()=>[],addEventListener(){}},window:{addEventListener(){}},
+  createScrollFollower:()=>({follow(){},reset(){}}),
   Option:function(text,value){this.textContent=text;this.value=value;},cache:{scopeKey,recover,remainingQuestions,read:async()=>saved,write:async()=>{}},
   fetch:async path=>{calls.push(path);return {ok:true,json:async()=>path==='/workbench/config'?config:path==='/workbench/tasks'?{tasks:[]}:connection};}};
  const script=(await readFile(new URL('../../app/web/workbench.js',import.meta.url),'utf8')).replace(/^import [^\n]*\n/gm,'');
@@ -76,8 +78,13 @@ test('workbench boot restores interrupted cache without starting model requests'
  assert.equal(element('message').value,'未发送的草稿');
  assert.equal(vm.runInNewContext('state.runs.at(-1).view',sandbox),'evaluation');
  vm.runInNewContext("state.busy=false;setWorkspaceView('chat')",sandbox);
+ element('message').value='ordinary question';
  await vm.runInNewContext("runChat('ordinary question')",sandbox);
  assert.deepEqual(sandbox.deliveredMessages.map(x=>x.role),['user','assistant']);
  assert.equal(element('message').value,'');
+ element('message').value='in-flight question';
+ vm.runInNewContext("streamRequest=async()=>{$('message').value='下一条未发送的草稿';return {experiment_id:'next-result',conversation_id:'conversation',answer:'test answer'};}",sandbox);
+ await vm.runInNewContext("runChat('in-flight question')",sandbox);
+ assert.equal(element('message').value,'下一条未发送的草稿');
 
 });

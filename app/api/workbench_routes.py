@@ -14,6 +14,7 @@ from app.evals.imported import get_dataset, evaluate_imported, runtime_fingerpri
 from app.evals.workbench import available_questions, evaluate_trace, selected_question, corpus_snapshot
 from app.generation.provider import GenerationSettings, make_generation_client
 from app.generation.service import ChatService
+from app.agent.ticket_policy import review_capabilities
 from app.retrieval.pipeline import RetrievalService
 from app.retrieval.planning import QueryPlanner
 
@@ -41,7 +42,8 @@ async def business_page():
 async def config(request: Request, identity: Identity = Depends(get_identity)):
     settings = request.app.state.settings
     gs, rs = settings.generation, settings.retrieval
-    return {"version": "1", "local_auth": True,
+    return {"version": "1", "local_auth": True, "history_replay": True, "ticket_workflow": True,
+        "ticket_review_capabilities": sorted(review_capabilities(identity)),
         "identities": [{"id": i.user_id, "audiences": sorted(i.audiences)} for i in LOCAL_IDENTITIES.values()],
         "generation": {"provider": gs.provider if gs.provider == "compatible" else "unconfigured", "model_id": gs.model_id if gs.provider == "compatible" else "",
             "temperature": gs.temperature, "top_p": gs.top_p, "output_limit": gs.output_limit,
@@ -120,7 +122,7 @@ async def workbench_chat(body: WorkbenchChatRequest, request: Request, identity:
         if question is None or question["question"] != body.message or body.conversation_id is not None:
             raise AppError("DATASET_QUESTION_MISMATCH", "评测题目必须与导入文件一致，且使用独立上下文。", 422)
     scoped, actual = scope_services(request.app, body)
-    chat_body = ChatRequest(**body.model_dump(exclude={"generation", "retrieval", "question_id", "dataset_id", "runtime_fingerprint"}))
+    chat_body = ChatRequest(**body.model_dump(exclude={"generation", "retrieval", "question_id", "dataset_id", "runtime_fingerprint", "replay_context_id"}))
     if not dataset:
         question, unavailable = selected_question(body.question_id, body.message, identity, body.conversation_id)
     else:
@@ -128,12 +130,22 @@ async def workbench_chat(body: WorkbenchChatRequest, request: Request, identity:
 
     async def execute():
         started = time.perf_counter()
+        repository = request.app.state.conversations
+        if body.replay_context_id:
+            context_id = body.replay_context_id
+            history = await asyncio.to_thread(repository.replay_context, context_id, body.message, identity)
+        else:
+            history = await asyncio.to_thread(repository.load, body.conversation_id, identity)
+            context_id, history = await asyncio.to_thread(repository.capture_context, history, body.message, identity)
+        history_view = repository.context_view(context_id, history)
         snapshot = await asyncio.to_thread(corpus_snapshot, request.app.state.document_repository, identity)
         result = await scoped.run(chat_body, identity, include_trace=True,
+            history_snapshot=history, commit_turn=not bool(body.replay_context_id),
             retrieval_options={"mode": body.retrieval.mode, "ef_search": body.retrieval.ef_search},
             effective_config=actual,
             **({"on_event": request.state.chat_events} if getattr(request.state, "chat_events", None) else {}))
         final_snapshot = await asyncio.to_thread(corpus_snapshot, request.app.state.document_repository, identity)
+        result["context"]["history_snapshot"] = history_view
         metrics = (evaluate_imported(dataset, question, result["retrieval_trace"], snapshot) if dataset else
             await asyncio.to_thread(evaluate_trace, question, result["retrieval_trace"], identity, request.app.state.document_repository))
         if snapshot["fingerprint"] != final_snapshot["fingerprint"]:
@@ -148,5 +160,5 @@ async def workbench_chat(body: WorkbenchChatRequest, request: Request, identity:
         return {**result, "experiment_id": str(uuid4()), "identity": identity.user_id,
                 "effective_config": actual, "evaluation": metrics,
                 "corpus_snapshot": snapshot, "corpus_changed_during_run": snapshot["fingerprint"] != final_snapshot["fingerprint"],
-                "metrics_scope": "单次独立评测；质量指标依据所选测试集的有效标注，答案正确性需人工评审。"}
+                "metrics_scope": "单次请求；自由会话未标注质量指标，重跑不写入原会话。答案正确性需人工评审。"}
     return await request.app.state.chat_admission.run(request, identity, execute)

@@ -10,12 +10,14 @@ class Identity:
     user_id: str
     tenant_id: str
     audiences: frozenset[str]
+    ticket_capabilities: frozenset[str] = frozenset()
 
 
 LOCAL_IDENTITIES = {
     "u_employee_001": Identity("u_employee_001", "tenant_clearwater", frozenset({"all-employees"})),
     "u_engineer_001": Identity("u_engineer_001", "tenant_clearwater", frozenset({"all-employees", "engineering-cn"})),
-    "u_support_001": Identity("u_support_001", "tenant_clearwater", frozenset({"all-employees", "it-support"})),
+    "u_support_001": Identity("u_support_001", "tenant_clearwater", frozenset({"all-employees", "it-support"}),
+        frozenset({"triage", "access_review", "security_review", "production_review"})),
 }
 
 

@@ -24,6 +24,10 @@
 .ticket-description {white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.8;}
 .ticket-reference {font-family:var(--mono);font-size:12px;overflow-wrap:anywhere;color:var(--muted);}
 .ticket-footnote {font-size:12px;color:var(--muted);margin:14px 0 0;}
+.ticket-classification {padding:14px 16px;margin:14px 0;border:1px solid var(--border);border-radius:8px;background:var(--accent-soft);line-height:1.8;overflow-wrap:anywhere;}
+.ticket-classification p {margin:6px 0 0;}
+.ticket-decision {display:flex;flex-direction:column;gap:12px;margin-top:18px;}
+.ticket-decision select,.ticket-decision textarea {width:100%;}
 .proposal-editor {margin:16px 0;}
 .proposal-editor .field {display:flex;flex-direction:column;gap:6px;margin:12px 0;}
 .proposal-editor input,.proposal-editor textarea {width:100%;padding:10px;border:1px solid var(--control-border);border-radius:5px;background:white;color:var(--ink);}

@@ -1,4 +1,4 @@
-import {node,timeLabel,ticketLink} from './agent-view.js';
+import {node,timeLabel,ticketLink,ticketStatus} from './agent-view.js?v=20261017-ticket-policy';
 const $=id=>document.getElementById(id);
 let epoch=0;
 try{const id=sessionStorage.getItem('knowledgeops-identity');if([...$('identity').options].some(o=>o.value===id))$('identity').value=id;}catch{}
@@ -43,7 +43,7 @@ function render(sections){
   tickets.append(node('p','field-help','本人共 '+t.total+' 条已提交工单，展示最近 '+t.items.length+' 条。'));
   if(!t.items.length)tickets.append(node('p','business-empty','暂无已提交工单。可以先让 Agent 分析设备或账号问题，再整理提案供你确认。'));
   for(const item of t.items){
-   const row=node('article','business-ticket');row.append(node('strong','',item.title),node('span','ticket-badge waiting','已创建 · 待分配'));
+   const row=node('article','business-ticket');row.append(node('strong','',item.title),node('span','ticket-badge waiting',ticketStatus(item)));
    row.append(node('p','field-help','处理人：'+(item.assignee||'未分配')+' · 预计完成：'+(item.estimated_completion||'未提供')),node('p','field-help','提交时间：'+timeLabel(item.created_at)),ticketLink(item.ticket_id));
    tickets.append(row);
   }

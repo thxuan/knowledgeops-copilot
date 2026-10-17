@@ -4,6 +4,7 @@ import json
 from fastapi import APIRouter, Depends, Query, Request, Response
 from fastapi.responses import StreamingResponse
 from app.agent.contracts import StartRequest, ApprovalRequest, ProposalRevision, dump
+from app.agent.contracts import TicketDecision
 from app.core.errors import AppError
 from app.core.identity import Identity, get_identity
 
@@ -62,6 +63,21 @@ async def tickets(request: Request, response: Response, limit: int = Query(30, g
                   identity: Identity = Depends(get_identity)):
     response.headers["Cache-Control"] = "no-store"
     return await asyncio.to_thread(service(request).repo.list_tickets, identity, limit, offset)
+
+@router.get("/ticket-reviews")
+async def ticket_reviews(request: Request, response: Response, limit: int = Query(30, ge=1, le=100), offset: int = Query(0, ge=0), identity: Identity = Depends(get_identity)):
+    response.headers["Cache-Control"] = "no-store"
+    return await asyncio.to_thread(service(request).repo.review_queue, identity, limit, offset)
+
+@router.get("/ticket-reviews/{ticket_id}")
+async def ticket_review(ticket_id: str, request: Request, response: Response, identity: Identity = Depends(get_identity)):
+    response.headers["Cache-Control"] = "no-store"
+    return await asyncio.to_thread(service(request).repo.review_ticket, ticket_id, identity)
+
+@router.post("/ticket-reviews/{ticket_id}/decisions")
+async def ticket_decision(ticket_id: str, body: TicketDecision, request: Request, response: Response, identity: Identity = Depends(get_identity)):
+    response.headers["Cache-Control"] = "no-store"
+    return await asyncio.to_thread(service(request).repo.decide_ticket, ticket_id, identity, body)
 
 
 @router.get("/tickets/{ticket_id}")

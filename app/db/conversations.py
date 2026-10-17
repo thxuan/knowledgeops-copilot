@@ -1,5 +1,6 @@
 """Owner-scoped state, optimistic turn commits and lossless extractive summaries."""
 import json
+import hashlib
 import time
 from uuid import uuid4
 from app.core.errors import AppError
@@ -25,6 +26,10 @@ class ConversationRepository:
                 );
                 CREATE INDEX IF NOT EXISTS conversation_message_order
                     ON conversation_messages(conversation_id, message_id);
+                CREATE TABLE IF NOT EXISTS workbench_contexts (
+                    context_id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, user_id TEXT NOT NULL,
+                    question TEXT NOT NULL, snapshot TEXT NOT NULL, created_at DOUBLE PRECISION NOT NULL
+                );
             """)
 
     @staticmethod
@@ -63,6 +68,33 @@ class ConversationRepository:
                 (citation["chunk_id"], citation["chunk_set_id"], identity.tenant_id, identity.user_id)).fetchone()
             if row is None:
                 raise AppError("EVIDENCE_CHANGED", "Evidence changed or access was revoked; ask again", 409)
+
+    def capture_context(self, snapshot, question, identity):
+        history = {**{key: snapshot[key] for key in ("conversation_id", "revision", "summary")},
+                   "messages": [{key: message[key] for key in ("message_id", "role", "content")}
+                                for message in snapshot["messages"] if message["role"] == "user"]}
+        context_id = str(uuid4())
+        with self.ingestion.connection() as db:
+            self._owned(db, snapshot["conversation_id"], identity)
+            db.execute("INSERT INTO workbench_contexts VALUES (%s,%s,%s,%s,%s,%s)",
+                       (context_id, identity.tenant_id, identity.user_id, question, dump(history), time.time()))
+        return context_id, history
+
+    def replay_context(self, context_id, question, identity):
+        with self.ingestion.connection() as db:
+            row = db.execute("SELECT question,snapshot FROM workbench_contexts WHERE context_id=%s AND tenant_id=%s AND user_id=%s",
+                             (context_id, identity.tenant_id, identity.user_id)).fetchone()
+            if row is None:
+                raise AppError("NOT_FOUND", "原上下文不存在或无权访问。", 404)
+            if row["question"] != question:
+                raise AppError("REPLAY_QUESTION_MISMATCH", "原上下文重跑必须使用原问题。", 422)
+            return json.loads(row["snapshot"])
+
+    @staticmethod
+    def context_view(context_id, snapshot):
+        history = {key: snapshot[key] for key in ("messages", "summary")}
+        fingerprint = hashlib.sha256(dump(history).encode()).hexdigest()
+        return {"id": context_id, "fingerprint": fingerprint, "revision": snapshot["revision"], **history}
 
     def check_evidence(self, evidence, identity):
         with self.ingestion.connection() as db:

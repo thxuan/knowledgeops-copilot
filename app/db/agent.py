@@ -11,10 +11,12 @@ from psycopg.types.json import Jsonb
 from app.agent.contracts import SYSTEM, dump, event, redact
 from app.core.errors import AppError
 from app.db.business_fixtures import business_fixtures
+from app.db.ticket_workflow import TicketWorkflowRepository
+from app.agent.ticket_policy import proposal_policy
 
 TERMINAL = {"completed", "failed", "cancelled"}
 
-class AgentRepository:
+class AgentRepository(TicketWorkflowRepository):
     def __init__(self, settings):
         self.settings = settings
 
@@ -52,16 +54,25 @@ class AgentRepository:
                 CREATE TABLE IF NOT EXISTS ko_agent_permissions (
                 tenant_id TEXT NOT NULL, user_id TEXT NOT NULL, can_write BOOLEAN NOT NULL,
                 PRIMARY KEY(tenant_id,user_id));
+                CREATE TABLE IF NOT EXISTS ko_ticket_workflows (
+                ticket_id TEXT PRIMARY KEY REFERENCES ko_agent_tickets(ticket_id) ON DELETE CASCADE,
+                policy JSONB NOT NULL, status TEXT NOT NULL, version INTEGER NOT NULL DEFAULT 1,
+                history JSONB NOT NULL DEFAULT '[]', created_at DOUBLE PRECISION NOT NULL);
                 CREATE TABLE IF NOT EXISTS ko_agent_business (
                 tenant_id TEXT NOT NULL, user_id TEXT NOT NULL, query TEXT NOT NULL, payload JSONB NOT NULL,
                 PRIMARY KEY(tenant_id,user_id,query));
                 CREATE OR REPLACE VIEW ko_ticket_business AS
                 SELECT t.tenant_id,t.user_id,t.ticket_id,t.arguments->>'title' AS title,
-                    'created'::text AS status, NULL::text AS assignee, NULL::text AS estimated_completion,
+                    COALESCE(w.status,'pending_triage')::text AS status, NULL::text AS assignee, NULL::text AS estimated_completion,
                     (a.result->>'created_at')::double precision AS created_at
                 FROM ko_agent_tickets t JOIN ko_agent_actions a USING(action_id)
                 JOIN ko_agent_runs r ON r.run_id=a.run_id
+                LEFT JOIN ko_ticket_workflows w ON w.ticket_id=t.ticket_id
                 WHERE r.tenant_id=t.tenant_id AND r.user_id=t.user_id AND a.status='committed';''')
+            db.execute("""INSERT INTO ko_ticket_workflows(ticket_id,policy,status,created_at)
+                SELECT t.ticket_id,%s,'pending_triage',COALESCE((a.result->>'created_at')::double precision,r.created_at)
+                FROM ko_agent_tickets t JOIN ko_agent_actions a USING(action_id) JOIN ko_agent_runs r ON r.run_id=a.run_id
+                ON CONFLICT DO NOTHING""", (Jsonb({"category":"uncertain","category_label":"待人工分诊","required_capabilities":[],"reason":"旧工单未记录业务分类，需要人工分诊。","policy_version":"legacy-untriaged","execution_allowed":False}),))
 
     def seed_demo(self, identity):
         """Explicit setup only; never restore revoked permissions on app startup."""
@@ -175,7 +186,8 @@ class AgentRepository:
             action_id = uuid4().hex
             digest = hashlib.sha256(dump({"run_id": state["run_id"], "tool": "create_ticket", "arguments": arguments, "version": 1}).encode()).hexdigest()
             pending = {"action_id": action_id, "version": 1, "digest": digest, "arguments": arguments,
-                       "tool": "create_ticket", "expires_at": time.time()+self.settings.approval_seconds}
+                       "tool": "create_ticket", "expires_at": time.time()+self.settings.approval_seconds,
+                       "classification": proposal_policy(state, arguments)}
             db.execute("INSERT INTO ko_agent_actions VALUES (%s,%s,1,%s,%s,%s,'pending',%s,NULL)",
                 (action_id, state["run_id"], digest, Jsonb(arguments), call_id, pending["expires_at"]))
             state.update(status="waiting_approval", phase="approval", pending=pending)
@@ -205,16 +217,23 @@ class AgentRepository:
                 # Lock current permission through the same transaction as the write.
                 permission = db.execute("SELECT can_write FROM ko_agent_permissions WHERE tenant_id=%s AND user_id=%s FOR SHARE",
                     (identity.tenant_id, identity.user_id)).fetchone()
-                if not permission or not permission["can_write"]:
-                    raise AppError("PERMISSION_DENIED", "Current identity cannot create tickets", 403)
+                if permission and not permission["can_write"]:
+                    raise AppError("PERMISSION_DENIED", "当前账号已被明确限制提交工单，请联系管理员。", 403)
+                classification = proposal_policy(state, action["arguments"])
+                if classification["category"] == "prohibited":
+                    raise AppError("TICKET_POLICY_DENIED", classification["reason"], 403)
                 result = {"ticket_id": uuid4().hex, "action_id": action["action_id"], "simulated": True,
-                          "status": "committed", "approval_status": "approved", "created_at": time.time(),
+                          "status": "committed", "approval_status": "submission_confirmed", "created_at": time.time(),
+                          "classification": classification, "workflow_status": classification["status"], "execution_allowed": False,
                           "title": action["arguments"]["title"]}
                 db.execute("INSERT INTO ko_agent_tickets VALUES (%s,%s,%s,%s,%s)",
                     (result["ticket_id"], action["action_id"], identity.tenant_id, identity.user_id, Jsonb(action["arguments"])))
+                db.execute("INSERT INTO ko_ticket_workflows(ticket_id,policy,status,created_at) VALUES (%s,%s,%s,%s)",
+                           (result["ticket_id"],Jsonb(classification),classification["status"],result["created_at"]))
                 db.execute("UPDATE ko_agent_actions SET status='committed',result=%s WHERE action_id=%s",
                            (Jsonb(result), action["action_id"]))
                 state["messages"].append({"role": "tool", "tool_call_id": action["call_id"], "content": dump(result)})
+                state["messages"][0]["content"] = SYSTEM
                 state.update(status="running", phase="after_commit", pending=None)
                 state["trace"].append({"name": "create_ticket", "call_id": action["call_id"], "arguments": action["arguments"],
                                        "result": result, "status": "committed", "duration_ms": (time.perf_counter()-started)*1000})
@@ -243,7 +262,8 @@ class AgentRepository:
             version = action["version"] + 1
             digest = hashlib.sha256(dump({"run_id": run_id, "tool": "create_ticket",
                                          "arguments": arguments, "version": version}).encode()).hexdigest()
-            pending = {**state["pending"], "version": version, "digest": digest, "arguments": arguments}
+            pending = {**state["pending"], "version": version, "digest": digest, "arguments": arguments,
+                       "classification": proposal_policy(state, arguments)}
             db.execute("UPDATE ko_agent_actions SET version=%s,digest=%s,arguments=%s WHERE action_id=%s",
                        (version, digest, Jsonb(arguments), action["action_id"]))
             # On resume the model sees the exact arguments approved by the human.
@@ -269,6 +289,8 @@ class AgentRepository:
                 "title": row["arguments"].get("title", ""), "status": "created", "simulated": True,
                 "created_at": result.get("created_at") or committed.get("time"),
                 "user_id": row["user_id"], "approval_version": row["version"]}
+        workflow = AgentRepository.workflow_view(row)
+        item.update(status=workflow["status"], workflow=workflow)
         if detail:
             prior_trace = []
             for trace in state.get("trace", []):
@@ -290,9 +312,10 @@ class AgentRepository:
             db.execute("SET TRANSACTION READ ONLY")
             total = db.execute("SELECT count(*) AS n FROM ko_agent_tickets WHERE tenant_id=%s AND user_id=%s",
                                (identity.tenant_id, identity.user_id)).fetchone()["n"]
-            rows = db.execute("""SELECT t.*,a.run_id,a.version,a.result,r.state
+            rows = db.execute("""SELECT t.*,a.run_id,a.version,a.result,r.state,to_jsonb(w) AS workflow
                 FROM ko_agent_tickets t JOIN ko_agent_actions a USING(action_id)
                 JOIN ko_agent_runs r ON r.run_id=a.run_id
+                LEFT JOIN ko_ticket_workflows w ON w.ticket_id=t.ticket_id
                 WHERE t.tenant_id=%s AND t.user_id=%s AND r.tenant_id=%s AND r.user_id=%s
                 ORDER BY COALESCE((a.result->>'created_at')::double precision,r.created_at) DESC,t.ticket_id
                 LIMIT %s OFFSET %s""", (identity.tenant_id, identity.user_id, identity.tenant_id, identity.user_id,
@@ -303,9 +326,10 @@ class AgentRepository:
     def get_ticket(self, ticket_id, identity):
         with self.connection() as db:
             db.execute("SET TRANSACTION READ ONLY")
-            row = db.execute("""SELECT t.*,a.run_id,a.version,a.result,r.state
+            row = db.execute("""SELECT t.*,a.run_id,a.version,a.result,r.state,to_jsonb(w) AS workflow
                 FROM ko_agent_tickets t JOIN ko_agent_actions a USING(action_id)
                 JOIN ko_agent_runs r ON r.run_id=a.run_id
+                LEFT JOIN ko_ticket_workflows w ON w.ticket_id=t.ticket_id
                 WHERE t.ticket_id=%s AND t.tenant_id=%s AND t.user_id=%s
                     AND r.tenant_id=%s AND r.user_id=%s""",
                 (ticket_id, identity.tenant_id, identity.user_id, identity.tenant_id, identity.user_id)).fetchone()
@@ -341,7 +365,7 @@ class AgentRepository:
                                    scope).fetchone()["n"]
                 data = {"items": rows, "total": count, "limit": 10,
                         "scope": "specific" if ticket_id else "latest",
-                        "note": "本地审批创建的工单；尚未接入派单和处理系统，不推测处理人或完成时间。"}
+                        "note": "本地提交的工单；受理与业务审批状态以记录为准，未接入实际派单或执行系统，不推测处理人或完成时间。"}
             else:
                 row = db.execute("SELECT payload FROM ko_agent_business WHERE tenant_id=%s AND user_id=%s AND query=%s LIMIT 1",
                                  (identity.tenant_id, identity.user_id, query)).fetchone()

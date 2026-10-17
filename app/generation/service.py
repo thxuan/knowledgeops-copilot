@@ -67,7 +67,7 @@ class ChatService:
         self.conversations, self.vectors = conversations, vectors
         self.client, self.settings = client, settings
 
-    async def run(self, body, identity, *, include_trace=False, retrieval_options=None, effective_config=None, on_event=None):
+    async def run(self, body, identity, *, include_trace=False, retrieval_options=None, effective_config=None, on_event=None, history_snapshot=None, commit_turn=True):
         started = time.perf_counter()
         async def notify(kind, data):
             if on_event:
@@ -76,7 +76,7 @@ class ChatService:
         if self.vectors is None:
             raise AppError("VECTOR_NOT_CONFIGURED", "Set KNOWLEDGEOPS_VECTOR_DATABASE_URL first", 503)
         history_started = time.perf_counter()
-        snapshot = await asyncio.to_thread(self.conversations.load, body.conversation_id, identity)
+        snapshot = history_snapshot if history_snapshot is not None else await asyncio.to_thread(self.conversations.load, body.conversation_id, identity)
         history_ms = (time.perf_counter() - history_started) * 1000
         users = [m for m in snapshot["messages"] if m["role"] == "user"]
         query = retrieval_query(body.message, users)
@@ -236,8 +236,9 @@ class ChatService:
             response["context"]["effective_config"] = effective_config
         await notify("phase", {"stage": "saving"})
         commit_started = time.perf_counter()
-        await asyncio.to_thread(self.conversations.commit, snapshot, identity, body.message, response,
-                                context.evidence, self.settings.summary_budget)
+        if commit_turn:
+            await asyncio.to_thread(self.conversations.commit, snapshot, identity, body.message, response,
+                                    context.evidence, self.settings.summary_budget)
         # Final response timings are measured after persistence; phase timings and
         # usage above are persisted, commit/total timings describe this live response.
         response["context"]["timings_ms"].update(commit=round((time.perf_counter() - commit_started) * 1000, 3),

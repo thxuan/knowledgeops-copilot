@@ -408,12 +408,14 @@ def test_committed_ticket_state_is_delivered_to_model_after_restart(agent_env):
             assert messages[-1]['role'] == 'tool'
             result = json.loads(messages[-1]['content'])
             assert result['status'] == 'committed'
-            assert result['approval_status'] == 'approved'
+            assert result['approval_status'] == 'submission_confirmed'
+            assert result['workflow_status'] == 'pending_triage'
+            assert result['execution_allowed'] is False
             assert result['action_id'] == approval.action_id
             assert result['ticket_id'] == committed['trace'][0]['result']['ticket_id']
             assert messages[-1]['tool_call_id'] == committed['trace'][0]['call_id']
             return {'message': {'role': 'assistant', 'content': dump({
-                'status': 'completed', 'answer': '模拟工单已批准并创建。'})},
+                'status': 'completed', 'answer': '模拟工单已提交，等待人工分诊，尚未执行操作。'})},
                 'usage': {}, 'model': 'committed-state-fixture'}
     asyncio.run(AgentService(restored, Model(), repo.settings).execute(pending['run_id'], identity))
     done = restored.get(pending['run_id'], identity)
@@ -423,7 +425,7 @@ def test_committed_ticket_state_is_delivered_to_model_after_restart(agent_env):
         saved = db.execute('SELECT result FROM ko_agent_actions WHERE action_id=%s',
                            (approval.action_id,)).fetchone()['result']
     assert saved == done['trace'][0]['result']
-    assert saved['status'] == 'committed' and saved['approval_status'] == 'approved'
+    assert saved['status'] == 'committed' and saved['approval_status'] == 'submission_confirmed'
     restored.approve(pending['run_id'], identity, approval)
     assert ticket_count(restored, pending['run_id']) == 1
 
@@ -574,7 +576,7 @@ def test_business_ticket_query_reads_only_committed_owner_tickets(agent_env):
     committed = repo.approve(state["run_id"], identity, approval_for(state))
     tid = committed["trace"][-1]["result"]["ticket_id"]
     item = repo.business(identity, "ticket_status", ticket_id=tid)["data"]["items"][0]
-    assert item["ticket_id"] == tid and item["status"] == "created"
+    assert item["ticket_id"] == tid and item["status"] == "pending_triage"
     assert item["assignee"] is None and item["estimated_completion"] is None
     for outsider in (Identity("other-business-user", identity.tenant_id, identity.audiences),
                      Identity(identity.user_id, "other-business-tenant", identity.audiences)):

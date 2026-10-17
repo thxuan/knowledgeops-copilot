@@ -7,6 +7,7 @@ export function action(label, callback, cls='secondary-button') {
 export function timeLabel(value) {
   return typeof value==='number'&&Number.isFinite(value)?new Date(value*1000).toLocaleString('zh-CN',{hour12:false}):'历史记录未保存时间';
 }
+export function ticketStatus(ticket){return ticket.workflow?.status_label||({queued:'待受理',pending_triage:'待人工分诊',pending_approval:'待业务审批',approved:'审批通过 · 未执行',rejected:'申请已拒绝',created:'已创建 · 待分配'})[ticket.status]||'状态待核对';}
 export function ticketLink(id, label='查看工单详情') {
   const a=node('a','secondary-button',label);a.href='/workbench/tickets/'+encodeURIComponent(id);return a;
 }
@@ -46,8 +47,10 @@ export function traceDetail(trace, onCitation) {
   detail.append(raw);return detail;
 }
 export function progressView(agent,onCitation) {
-  const box=node('section','task-progress');box.setAttribute('aria-label','任务处理过程');
-  box.append(node('h4','','处理过程'));const list=node('ol','task-steps');
+  const terminal=['completed','cancelled','failed'].includes(agent.status),box=node(terminal?'details':'section','task-progress');box.setAttribute('aria-label','任务处理过程');
+  const completed=(agent.trace||[]).filter(trace=>trace.name!=='create_ticket'&&trace.status!=='failed').length;
+  if(terminal)box.dataset.detailKey='progress';
+  box.append(node(terminal?'summary':'h4','',terminal?`处理记录 · ${completed} 步已完成`:'处理过程'));const list=node('ol','task-steps');
   const done=new Set();
   for(const trace of agent.trace||[]){
     if(trace.name==='create_ticket')continue;
@@ -74,14 +77,17 @@ export function proposalDecision(p,approved,now=Date.now()){
   return {suffix:'approval',body:{action_id:p.action_id,version:p.version,digest:p.digest,approve:approved}};
 }
 export function proposalView(p,{approve,revise}) {
-  const box=node('section','ticket-proposal');box.setAttribute('aria-label','工单预览与审批');
+  const box=node('section','ticket-proposal');box.setAttribute('aria-label','工单预览与提交');
   const expired=p.expires_at*1000<=Date.now();
   const top=node('div','ticket-card-heading');top.append(node('span','eyebrow','工单预览'),node('span','ticket-badge waiting',expired?'预览已过期':'尚未提交'));box.append(top,node('h3','',p.arguments.title));
   const preview=node('div','proposal-preview');preview.append(node('p','field-help','问题描述'),node('p','ticket-description',p.arguments.description));
   preview.append(node('p','field-help','请核对故障事实；如已知，可补充资产编号、发生时间及已尝试步骤。'));
+  preview.append(node('p','proposal-impact','确认后将创建 1 条本人名下的本地模拟工单；不会修改设备配置或授予账号权限。'));
+  const policy=p.classification;
+  if(policy){const classification=node('section','ticket-classification');classification.append(node('strong','',`服务端分类：${policy.category_label}`),node('p','field-help',policy.reason),node('p','field-help',policy.category==='prohibited'?'此操作不可提交或通过审批放行。':`提交后：${policy.status_label}。提交确认不等于业务审批，审批通过也不会自动执行。`));preview.append(classification);}
   const actions=node('div','actions proposal-actions');
-  const confirm=action('确认创建',()=>approve(true),'primary-button'),edit=action('修改内容',()=>{preview.hidden=true;form.hidden=false;title.focus();}),reject=action(expired?'关闭过期预览':'暂不提交',()=>approve(false),'secondary-button danger-button');
-  confirm.disabled=edit.disabled=expired;actions.append(confirm,edit,reject);preview.append(actions);
+  const confirm=action('确认提交',()=>approve(true),'primary-button'),edit=action('修改内容',()=>{preview.hidden=true;form.hidden=false;title.focus();}),reject=action(expired?'关闭过期预览':'暂不提交',()=>approve(false),'secondary-button danger-button');
+  confirm.disabled=expired||policy?.category==='prohibited';edit.disabled=expired;actions.append(confirm,edit,reject);preview.append(actions);
   const form=node('form','proposal-editor');form.hidden=true;
   const titleLabel=node('label','field','工单标题'),title=node('input');title.value=p.arguments.title;title.required=true;title.minLength=3;title.maxLength=120;titleLabel.append(title);
   const descriptionLabel=node('label','field','问题描述'),description=node('textarea');description.value=p.arguments.description;description.rows=6;description.required=true;description.minLength=3;description.maxLength=1000;descriptionLabel.append(description);
@@ -102,5 +108,6 @@ export function receiptView(trace,events=[]) {
   box.append(node('span','ticket-badge success','✓ 创建成功'),node('h3','',trace.arguments?.title||r.title||'模拟工单'));
   box.append(node('p','ticket-reference','工单编号：'+r.ticket_id),node('p','field-help','提交时间：'+timeLabel(r.created_at??events.find(e=>e.type==='tool_end'&&e.result?.ticket_id===r.ticket_id)?.time)));
   if(trace.arguments?.description)box.append(node('p','ticket-description',trace.arguments.description));
-  box.append(node('p','field-help','已写入本地模拟工单。后续处理进展请以实际记录为准。'),ticketLink(r.ticket_id));return box;
+  if(r.classification)box.append(node('p','ticket-classification',`${r.classification.category_label} · ${r.classification.status_label}`));
+  box.append(node('p','field-help','已提交本地模拟工单，不代表业务审批通过或已执行。后续处理进展请以工单详情为准。'),ticketLink(r.ticket_id));return box;
 }

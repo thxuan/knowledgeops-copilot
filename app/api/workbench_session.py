@@ -151,6 +151,8 @@ async def unified_message_stream(body: WorkbenchMessage, request: Request, ident
 
 @router.post("/workbench/message")
 async def unified_message(body: WorkbenchMessage, request: Request, identity: Identity = Depends(get_identity)):
+    if body.replay_context_id:
+        raise AppError("INVALID_REPLAY_ROUTE", "历史重跑仅支持问答评测，不会重新执行任务。", 422)
     app = request.app
     async with lock(app):
         if app.state.chat.settings.provider != "compatible":

@@ -6,41 +6,42 @@
   <title>KnowledgeOps · 会话与评测</title>
   <link rel="icon" type="image/svg+xml" href="/workbench/assets/favicon.svg">
   <link rel="stylesheet" href="/workbench/assets/workbench.css">
-  <link rel="stylesheet" href="/workbench/assets/tickets.css">
-  <link rel="stylesheet" href="/workbench/assets/conversation.css">
+  <link rel="stylesheet" href="/workbench/assets/tickets.css?v=20261017-ticket-policy">
+  <link rel="stylesheet" href="/workbench/assets/conversation.css?v=20261017-conversation-records">
   <link rel="stylesheet" href="/workbench/assets/app-header.css">
-<script type="module" src="/workbench/assets/workbench.js"></script>
+  <link rel="stylesheet" href="/workbench/assets/ui-theme.css?v=20261017-glass">
+<script type="module" src="/workbench/assets/workbench.js?v=20261017-cancel-clear"></script>
 </head>
 <body class="workbench-page">
 <a class="skip-link" href="#message">跳到提问</a>
 <header class="topbar app-header">
   <a class="brand" href="/" aria-label="KnowledgeOps 工作台首页"><span>KnowledgeOps</span></a>
-  <nav class="workspace-nav" aria-label="工作区"><a href="/settings">连接设置</a><a href="/knowledge">知识库</a><a href="/" aria-current="page">会话与评测</a><a href="/workbench/business">我的业务状态</a><a href="/workbench/tickets">我的工单</a></nav>
+  <nav class="workspace-nav" aria-label="工作区"><a href="/" aria-current="page">会话</a><a href="/knowledge">知识库</a><a href="/workbench/tickets">我的工单</a><a href="/workbench/business">业务状态</a><a href="/settings">连接设置</a></nav>
   <div class="top-actions"><div class="identity-group header-identity"><label for="identity">当前身份</label><select id="identity" aria-label="当前身份"><option value="u_engineer_001">工程师</option><option value="u_employee_001">普通员工</option><option value="u_support_001">IT 支持</option></select></div></div>
 </header>
 <main>
   <h1 class="sr-only">技术支持会话与评测</h1>
-  <div class="view-toolbar"><div class="view-switch" role="group" aria-label="工作视图"><button id="chat-view-button" aria-pressed="true" aria-controls="chat-view">会话</button><button id="evaluation-view-button" aria-pressed="false" aria-controls="evaluation-view">评测与记录</button></div><div class="workspace-tools"><span id="connection" class="connection">连接中</span><a class="quiet-link" href="/docs" target="_blank" rel="noopener">API 文档</a><div class="actions"><button id="model-settings" class="text-button">模型设置</button><button id="toggle-parameters" class="text-button" aria-haspopup="dialog" aria-controls="parameters-dialog" aria-label="运行参数"><span class="full-tool-label">运行</span>参数</button><button id="open-inspector" class="text-button" aria-haspopup="dialog" aria-controls="inspector-dialog" aria-label="运行详情"><span class="full-tool-label">运行</span>详情</button></div></div></div>
+  <div class="view-toolbar"><div class="view-switch" role="group" aria-label="工作视图"><button id="chat-view-button" aria-pressed="true" aria-controls="chat-view">会话</button><button id="evaluation-view-button" aria-pressed="false" aria-controls="evaluation-view">评测与记录</button></div><div class="workspace-tools"><span id="connection" class="connection">连接中</span><details class="debug-menu"><summary>调试工具</summary><div class="debug-actions"><button id="toggle-parameters" class="text-button" aria-haspopup="dialog" aria-controls="parameters-dialog" aria-label="运行参数">运行参数</button><button id="open-inspector" class="text-button" aria-haspopup="dialog" aria-controls="inspector-dialog" aria-label="运行详情">运行详情</button><a href="/settings#generation-section">模型连接设置</a><a href="/docs" target="_blank" rel="noopener">API 文档 ↗</a></div></details></div></div>
   <div id="notice" class="notice" role="status" hidden><span id="notice-text"></span><button id="dismiss-notice" type="button" aria-label="关闭提示">×</button></div>
   <div class="workspace" id="chat-view">
 
     <section class="conversation panel" aria-labelledby="task-title">
-      <div class="conversation-heading"><div class="conversation-title"><span class="support-mark" aria-hidden="true">K</span><div><h2 id="task-title">技术支持助手</h2><span class="conversation-subtitle">知识解答 · 业务查询 · 工单协助</span></div></div><div class="run-context"><span id="model-badge" class="badge">读取配置</span><details class="retrieval-profile"><summary>检索方式</summary><p id="pipeline-badge">语义 ＋ BM25 → RRF → 证据</p></details></div><button id="new-conversation" class="secondary-button">＋ 新会话</button></div>
-      <div id="chat-log" class="chat-log" aria-live="polite">
+      <div class="conversation-heading"><div class="conversation-title"><span class="support-mark" aria-hidden="true">K</span><div><h2 id="task-title">技术支持助手</h2><span class="conversation-subtitle">有依据的解答，可确认的操作</span></div></div><button id="new-conversation" class="secondary-button">＋ 新会话</button></div>
+      <div class="transcript-area"><div id="chat-log" class="chat-log" role="log" aria-label="会话记录" aria-live="polite" tabindex="0">
 <div id="welcome" class="welcome support-welcome">
-  <div class="welcome-heading"><span class="welcome-symbol" aria-hidden="true">✳</span><div><span class="welcome-kicker">KNOWLEDGEOPS · 技术支持助手</span><h3>今天需要解决什么问题？</h3><p>查阅操作指南、核对业务状态，或把问题整理成可确认的工单。</p></div></div>
+  <div class="welcome-heading"><span class="welcome-symbol" aria-hidden="true">K</span><div><span class="welcome-kicker">你的技术支持工作台</span><h3>今天需要解决什么问题？</h3><p>从知识库找到依据，把下一步交给助手。</p></div></div>
   <div class="welcome-tasks" aria-label="选择一个任务开始">
-    <button type="button" class="welcome-task" data-prompt="公司 TideLink 出现 TL-403 应该如何处理？合规状态需要多久刷新？请引用知识库依据。" data-mode="question"><span class="task-category"><span aria-hidden="true">01</span> 知识问答 <span class="task-arrow" aria-hidden="true">↗</span></span><strong>找到有依据的处理方法</strong><span class="task-description">查询 VPN、备份与文件共享等操作指南和企业政策。</span><span class="task-example">试试：TL-403 应该怎么处理？</span></button>
-    <button type="button" class="welcome-task" data-prompt="查询我本人的模拟设备状态，结合公司知识库解释合规问题，给出建议；如需 IT 协助，先整理工单供我确认。" data-mode="auto"><span class="task-category"><span aria-hidden="true">02</span> 设备排障 <span class="task-arrow" aria-hidden="true">↗</span></span><strong>从设备异常找到下一步</strong><span class="task-description">结合设备记录与知识库，检查补丁、EDR 和合规问题。</span><span class="task-example">试试：我的设备为什么不合规？</span></button>
-    <button type="button" class="welcome-task" data-prompt="查询我本人的模拟 OneGate 账号安全状态，结合公司政策核对 MFA 和临时权限要求，说明还需要补充什么；不要修改账号或授予权限。" data-mode="auto"><span class="task-category"><span aria-hidden="true">03</span> 账号安全 <span class="task-arrow" aria-hidden="true">↗</span></span><strong>核对账号与访问权限</strong><span class="task-description">查看 MFA 登记和临时权限记录，明确需要补充的配置。</span><span class="task-example">试试：我的 MFA 配置符合要求吗？</span></button>
-    <button type="button" class="welcome-task" data-prompt="查询我最近提交的本地模拟工单，说明当前状态；没有处理人或预计完成时间时明确说明未知，不要推测。" data-mode="auto"><span class="task-category"><span aria-hidden="true">04</span> 工单跟进 <span class="task-arrow" aria-hidden="true">↗</span></span><strong>查看已经提交的处理请求</strong><span class="task-description">查询本人提交的工单；新建工单时先预览，再由你确认。</span><span class="task-example">试试：我提交的工单到哪一步了？</span></button>
+    <button type="button" class="welcome-task" data-prompt="公司 TideLink 出现 TL-403 应该如何处理？合规状态需要多久刷新？请引用知识库依据。" data-mode="question"><span class="task-category">知识问答 <span class="task-arrow" aria-hidden="true">↗</span></span><strong>TL-403 应该怎么处理？</strong><span class="task-description">查阅指南与政策，回答附上真实来源。</span></button>
+    <button type="button" class="welcome-task" data-prompt="查询我本人的模拟设备状态，结合公司知识库解释合规问题，给出建议；如需 IT 协助，先整理工单供我确认。" data-mode="auto"><span class="task-category">设备排障 <span class="task-arrow" aria-hidden="true">↗</span></span><strong>我的设备为什么不合规？</strong><span class="task-description">核对设备记录，整理可以执行的下一步。</span></button>
+    <button type="button" class="welcome-task" data-prompt="查询我本人的模拟 OneGate 账号安全状态，结合公司政策核对 MFA 和临时权限要求，说明还需要补充什么；不要修改账号或授予权限。" data-mode="auto"><span class="task-category">账号安全 <span class="task-arrow" aria-hidden="true">↗</span></span><strong>我的 MFA 配置符合要求吗？</strong><span class="task-description">对照公司政策，查看账号与权限状态。</span></button>
+    <button type="button" class="welcome-task" data-prompt="查询我最近提交的本地模拟工单，说明当前状态；没有处理人或预计完成时间时明确说明未知，不要推测。" data-mode="auto"><span class="task-category">工单跟进 <span class="task-arrow" aria-hidden="true">↗</span></span><strong>我的工单到哪一步了？</strong><span class="task-description">查看已提交的请求和实际处理记录。</span></button>
   </div>
-  <div class="welcome-bottom"><span>选一个任务填入输入框，或直接描述你的问题。</span><div><a href="/workbench/business">查看业务状态 ↗</a><a href="/workbench/tickets">我的工单 ↗</a></div></div>
+  <div class="welcome-bottom"><span>选择示例填入草稿，由你确认发送。</span></div>
   <p class="welcome-footnote">GNOME 技术指南与企业演示政策分开适用；业务记录和工单为本地模拟数据。</p>
 </div>
-      </div>
+      </div><button id="jump-latest" class="jump-latest" type="button" hidden>↓ 回到最新</button></div>
 
-      <form id="composer" class="composer"><label class="sr-only" for="message">问题或任务</label><textarea id="message" rows="1" maxlength="4000" placeholder="描述问题，或交代一个任务…" required></textarea><div class="composer-actions"><label class="intent-label" for="intent"><select id="intent" aria-label="会话模式"><option value="auto">自动 · 问答与任务</option><option value="question">仅知识问答</option></select></label><small id="composer-note">Enter 发送 · Shift + Enter 换行</small><button id="send" class="primary-button" type="submit" disabled>发送 <span aria-hidden="true">↑</span></button></div></form>
+      <div class="composer-dock"><div class="composer-status" role="status"><span id="generation-status"></span><button id="retry-message" class="text-button" type="button" hidden>重试这条消息</button></div><form id="composer" class="composer"><label class="sr-only" for="message">问题或任务</label><textarea id="message" rows="1" maxlength="4000" placeholder="描述问题，或交代一个任务…" required></textarea><div class="composer-actions"><label class="intent-label" for="intent"><select id="intent" aria-label="会话模式"><option value="auto">自动 · 问答与任务</option><option value="question">仅知识问答</option></select></label><button id="model-settings" type="button" class="text-button composer-model" aria-haspopup="dialog" aria-controls="model-dialog" aria-label="模型设置"><span id="model-badge">读取配置</span><span aria-hidden="true">⌄</span></button><button id="stop-generation" class="secondary-button" type="button" hidden>■ 停止生成</button><button id="send" class="primary-button" type="submit" disabled>发送 ↑</button></div></form><div class="composer-footnote"><small id="composer-note">Enter 发送 · Shift + Enter 换行</small><details class="retrieval-profile"><summary>检索方式</summary><p id="pipeline-badge">语义 ＋ BM25 → RRF → 证据</p></details></div></div>
     </section>
 
   </div>
@@ -100,7 +101,7 @@
       <div id="metrics-panel"><div class="empty-state">运行一次问答后，查看耗时、证据覆盖与 token 用量。<small>自由问题的召回率与正确率保持“未评测”。</small></div></div>
       <div id="evidence-panel" hidden><label class="field" for="evidence-stage">观察阶段<select id="evidence-stage"><option value="evidence">进入模型的证据</option><option value="final">最终检索结果</option><option value="vector">语义候选</option><option value="keyword">BM25 候选</option><option value="fusion">RRF 融合</option><option value="rerank">重排结果</option><option value="selection_pool">多查询选择池</option></select></label><div id="evidence-list" class="empty-state">还没有检索结果。</div></div>
     </aside></dialog>
-<dialog id="source-dialog"><div class="dialog-heading"><div><h2 id="source-title">引用原文</h2></div><button data-close="source-dialog" class="icon-button" aria-label="关闭引用原文">×</button></div><p id="source-meta" class="field-help"></p><pre id="source-text" class="source-text"></pre></dialog>
+<dialog id="source-dialog" class="source-drawer" aria-labelledby="source-title"><div class="dialog-heading"><div><span class="eyebrow">知识库依据</span><h2 id="source-title">引用原文</h2></div><button data-close="source-dialog" class="icon-button" aria-label="关闭引用原文">×</button></div><p id="source-meta" class="field-help"></p><pre id="source-text" class="source-text"></pre></dialog>
 <dialog id="compare-dialog" class="wide-dialog" aria-labelledby="comparison-title"><div class="dialog-heading"><div><h2 id="comparison-title">对比两次运行</h2><p class="field-help">选定同一道题的两次记录，查看配置变化、回答与检索效果。此处只读取历史结果。</p></div><button data-close="compare-dialog" class="icon-button" aria-label="关闭实验对比">×</button></div>
 <div class="comparison-picker"><label class="field" for="comparison-baseline">① 基准运行<select id="comparison-baseline"></select></label><span class="comparison-direction" aria-hidden="true">→</span><label class="field" for="comparison-candidate">② 对照运行<select id="comparison-candidate"></select></label></div>
 <label class="comparison-filter"><input id="comparison-same-question" type="checkbox" checked> 只显示同一道题的其他运行</label>

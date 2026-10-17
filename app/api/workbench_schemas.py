@@ -36,6 +36,7 @@ class RetrievalControls(BaseModel):
 
 
 class WorkbenchChatRequest(ChatRequest):
+    replay_context_id: str | None = Field(default=None, min_length=1, max_length=64)
     dataset_id: str | None = Field(default=None, max_length=64)
     runtime_fingerprint: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
     generation: GenerationControls = Field(default_factory=GenerationControls)
@@ -44,6 +45,8 @@ class WorkbenchChatRequest(ChatRequest):
 
     @model_validator(mode="after")
     def valid_window(self):
+        if self.replay_context_id and (self.conversation_id or self.dataset_id or self.question_id):
+            raise ValueError("Replay uses a fixed free-question context, without a live conversation or dataset")
         r = self.retrieval
         available = r.fusion_k if r.semantic and r.keyword else r.semantic_k if r.semantic else r.keyword_k
         if self.top_k > available:

@@ -6,6 +6,22 @@ let documents=[],selected=null,collections=[],busy=false,previewConfig=null;
 let library=null,queue=null,queueContext=null;
 const selectedDocuments=new Set();
 const labels={u_engineer_001:'工程师',u_employee_001:'普通员工',u_support_001:'IT 支持'};
+function connectionState(name,text,state='saved'){
+  const badge=document.getElementById(name+'-connection-state');if(!badge)return;badge.textContent=text;badge.dataset.state=state;
+}
+if(settingsPage){
+  for(const name of ['database','embedding','rerank','generation']){
+    const badge=document.createElement('span');badge.id=name+'-connection-state';badge.className='connection-status';badge.textContent='读取配置中';badge.setAttribute('role','status');$(name+'-section').querySelector('.section-heading').append(badge);
+    $(name+'-section').addEventListener('input',()=>connectionState(name,'有未保存修改','dirty'));
+    $(name+'-section').addEventListener('change',()=>connectionState(name,'有未保存修改','dirty'));
+  }
+}
+function savedConnectionStates(connections,model){
+  connectionState('database','已载入配置');
+  connectionState('embedding',connections.embedding.configured?'已保存':'未配置',connections.embedding.configured?'saved':'dirty');
+  connectionState('rerank',connections.rerank.configured?'已保存':'未启用');
+  connectionState('generation',model.configured?'已保存':'未配置',model.configured?'saved':'dirty');
+}
 function node(tag,text,className=''){const n=document.createElement(tag);n.textContent=text;n.className=className;return n;}
 function notice(text,error=false){$('notice').hidden=!text;$('notice').textContent=text;$('notice').classList.toggle('error',error);}
 async function api(path,body,method=body?'POST':'GET'){
@@ -13,7 +29,11 @@ async function api(path,body,method=body?'POST':'GET'){
   if(queueContext)headers['X-Knowledge-Workspace']=queueContext.fingerprint;let payload=body;
   if(body&&!(body instanceof FormData)){headers['Content-Type']='application/json';payload=JSON.stringify(body);}
   const response=await fetch(path,{method,headers,body:payload});const result=await response.json();
-  if(!response.ok){const error=new Error(result.error?.message||`请求失败 (${response.status})`);error.code=result.error?.code;throw error;}return result;
+  const tested=path.match(/^\/workbench\/connections\/(database|embedding|rerank)\/test$/)?.[1]||(path==='/workbench/model/test'?'generation':null);
+  if(!response.ok){if(tested)connectionState(tested,'检测失败','error');const error=new Error(result.error?.message||`请求失败 (${response.status})`);error.code=result.error?.code;throw error;}
+  if(tested){const unsaved=document.getElementById(tested+'-connection-state')?.dataset.state==='dirty';connectionState(tested,unsaved?'检测通过 · 未保存':'检测通过',unsaved?'dirty':'saved');}
+  if(path==='/workbench/model'&&method==='PUT')connectionState('generation','已保存');
+  return result;
 }
 async function action(fn){if(busy)return;busy=true;notice('');for(const b of document.querySelectorAll('button'))b.disabled=true;$('identity').disabled=true;
   try{await fn();}catch(error){notice(error.message,true);}finally{busy=false;for(const b of document.querySelectorAll('button'))b.disabled=false;$('identity').disabled=false;syncControls();}}
@@ -24,7 +44,7 @@ function embedding(){return {...provider('embedding'),dimensions:Number($('embed
 function chunkConfig(){return {strategy:$('chunk-strategy').value,size:Number($('chunk-size').value),overlap:Number($('chunk-overlap').value)};}
 async function readiness(){const r=await api('/workbench/readiness');const box=$('readiness');box.replaceChildren();box.dataset.ready=String(r.ready);box.append(node('strong',r.ready?'知识库已就绪':'需要完成配置'),node('span',`${r.documents} 份可见文档 · ${r.indexed_documents} 份已索引 · ${r.indexed_chunks} 个切块`),node('span',`${r.schema} / ${r.collection}`));if(r.reasons.length)box.append(node('span',r.reasons.join('；')));const link=node('a',settingsPage?'查看知识库 →':'检查连接 →');link.href=settingsPage?'/knowledge':'/settings';box.append(link);}
 async function loadSettings(){const c=await api('/workbench/connections');for(const [id,key] of [['host','host'],['port','port'],['database','database'],['user','user'],['schema','schema_name']])$('db-'+id).value=c.database[key];for(const name of ['embedding','rerank']){const p=c[name];$(name+'-url').value=p.base_url;$(name+'-model').value=p.model_id;$(name+'-key').placeholder=p.key_present?'已配置，留空沿用':'输入 API Key';} $('embedding-price').value=c.embedding.cost_per_million_tokens??'';$('embedding-status').textContent=c.embedding.configured&&c.embedding.cost_per_million_tokens==null?'尚未填写单价：知识问答可用，Agent 查阅知识库前需补齐。':'';$('embedding-dimensions').value=c.embedding.dimensions;$('embedding-collection').value=c.embedding.configured?c.embedding.collection:'';$('rerank-enabled').checked=c.rerank.configured;
-  const g=await api('/workbench/model');$('generation-url').value=g.base_url;$('generation-model').value=g.model_id;$('generation-key').placeholder=g.key_present?'已配置，留空沿用':'输入 API Key';$('generation-input-price').value=g.agent_ready?g.input_price??'':'';$('generation-output-price').value=g.agent_ready?g.output_price??'':'';syncControls();await detectDatabase();if(!c.embedding.configured){const existing=collections.find(item=>item.signature.provider==='compatible');if(existing){$('existing-collection').value=existing.collection;chooseCollection();}}}
+  const g=await api('/workbench/model');$('generation-url').value=g.base_url;$('generation-model').value=g.model_id;$('generation-key').placeholder=g.key_present?'已配置，留空沿用':'输入 API Key';$('generation-input-price').value=g.agent_ready?g.input_price??'':'';$('generation-output-price').value=g.agent_ready?g.output_price??'':'';savedConnectionStates(c,g);syncControls();await detectDatabase();if(!c.embedding.configured){const existing=collections.find(item=>item.signature.provider==='compatible');if(existing){$('existing-collection').value=existing.collection;chooseCollection();}}}
 async function detectDatabase(){const r=await api('/workbench/connections/database/test',database());collections=r.collections;$('schema-options').replaceChildren(...r.schemas.map(s=>{const n=document.createElement('option');n.value=s;return n;}));$('existing-collection').replaceChildren(new Option('填写新集合，或选择已有集合',''),...collections.filter(c=>c.signature.provider==='compatible').map(c=>new Option(`${c.collection} · ${c.signature.model_id} · ${c.dimensions} 维`,c.collection)));$('database-status').textContent=`连接正常 · ${r.collections.filter(c=>c.signature.provider==='compatible').length} 个真实模型集合`;}
 function chooseCollection(){const c=collections.find(c=>c.collection===$('existing-collection').value);if(!c)return;if($('embedding-model').value!==c.signature.model_id||$('embedding-url').value.replace(/\/$/,'')!==c.signature.endpoint.replace(/\/$/,''))$('embedding-price').value='';$('embedding-collection').value=c.collection;$('embedding-dimensions').value=c.dimensions;$('embedding-model').value=c.signature.model_id;$('embedding-url').value=c.signature.endpoint;$('embedding-key').value='';$('embedding-status').textContent='已填入集合记录的模型签名，请填写密钥并测试。';}
 async function loadDocuments(){library=await api('/workbench/knowledge');documents=library.documents;for(const id of selectedDocuments)if(!documents.some(d=>d.document_id===id&&d.owned&&d.status==='succeeded'))selectedDocuments.delete(id);$('document-count').textContent=`/ ${documents.length}`;if(selected){selected=documents.find(d=>d.document_id===selected.document_id)||null;if(!selected){previewConfig=null;$('document-detail').hidden=true;$('select-document').hidden=false;$('parsed-text').textContent='';$('chunk-preview').replaceChildren();}}renderDocuments();syncControls();}
@@ -40,6 +60,10 @@ $('connections-form').onsubmit=e=>{e.preventDefault();action(async()=>{await api
 function generation(){const g=provider('generation');const a=$('generation-input-price').value,b=$('generation-output-price').value;if(a!==''||b!==''){if(a===''||b==='')throw new Error('请同时填写输入与输出单价。');g.input_price=Number(a);g.output_price=Number(b);}return g;}
 $('test-generation').onclick=()=>action(async()=>{await api('/workbench/model/test',generation());$('generation-status').textContent='连接与 JSON 输出测试通过';});$('generation-form').onsubmit=e=>{e.preventDefault();action(async()=>{await api('/workbench/model',generation(),'PUT');$('generation-key').value='';$('generation-status').textContent='模型已保存';await readiness();});};
 $('chunk-form').onsubmit=e=>{e.preventDefault();action(preview);};$('chunk-form').oninput=()=>{previewConfig=null;syncControls();};$('build').onclick=()=>action(async()=>{if(!previewConfig)return;$('preview-summary').textContent='正在切分、计算向量并写入索引…';try{const r=await api(`/workbench/knowledge/${encodeURIComponent(selected.document_id)}/build`,{...previewConfig,force:true});$('preview-summary').textContent=`索引完成 · ${r.count} 个切块 · ${Math.round(r.duration_ms)} ms`;notice('文档索引已完成，可以返回会话进行检索。');}finally{await loadDocuments();await readiness();}});
+for(const view of ['original','chunks'])$('show-document-'+view).onclick=()=>{
+  $('original-preview').hidden=view!=='original';$('chunk-preview').hidden=view!=='chunks';
+  for(const name of ['original','chunks'])$('show-document-'+name).setAttribute('aria-pressed',String(name===view));
+};
 $('save-permissions').onclick=()=>action(async()=>{const ids=[...$('permissions').querySelectorAll('input:checked')].map(n=>n.value);await api(`/documents/${encodeURIComponent(selected.document_id)}/permissions`,{user_ids:ids},'PUT');notice('权限已保存。');await loadDocuments();await readiness();});
 
 function visibleOwnedDocuments(){const query=$('document-search').value.toLowerCase();return documents.filter(d=>d.owned&&d.status==='succeeded'&&[d.filename,d.title,d.source].some(v=>v?.toLowerCase().includes(query)));}
