@@ -1,0 +1,67 @@
+{
+  "date": "2026-10-22",
+  "stage": "3-agent-execution",
+  "status": "implemented_pending_user_acceptance",
+  "implementation": {
+    "runtime": "LangGraph StateGraph",
+    "model": "LangChain ChatOpenAI",
+    "read_tools": "LangChain StructuredTool",
+    "pause_resume": "interrupt / Command",
+    "checkpoint": "lease-fenced PostgreSQL BaseCheckpointSaver",
+    "durability": "sync",
+    "old_service_while_loop_removed": true,
+    "business_authorization_budgets_and_ticket_transactions": "application_owned",
+    "stage_2_memory_changed": false
+  },
+  "validation": {
+    "passed": 13,
+    "failed": 0,
+    "full_regression_run": false,
+    "paid_model_calls": false,
+    "new_migration_checks": 4,
+    "groups": [
+      {
+        "passed": 5,
+        "scope": "concurrent approval, three budget limits, API/SSE lifecycle"
+      },
+      {
+        "passed": 6,
+        "scope": "four migration checks, timeout, committed state delivered after restart"
+      },
+      {
+        "passed": 2,
+        "scope": "process exit at approval/commit, format repair after commit without duplicate write"
+      }
+    ],
+    "new_test_file": "tests/integration/test_langgraph_agent.py",
+    "warnings": [
+      "Existing Starlette TestClient AnyIO alias deprecation"
+    ]
+  },
+  "runtime_smoke": {
+    "url": "http://127.0.0.1:18000/",
+    "workspace": "ko_rd_it_v1",
+    "python_environment": ".venv-knowledgeops-langchain",
+    "http_200_paths": [
+      "/health",
+      "/",
+      "/settings",
+      "/knowledge",
+      "/workbench/assets/workbench.css"
+    ],
+    "graph_tables_initialized": [
+      "ko_agent_graph_checkpoints",
+      "ko_agent_graph_writes"
+    ]
+  },
+  "manual_acceptance": {
+    "status": "pending",
+    "owner": "user",
+    "instructions": "docs/agent-langgraph.md"
+  },
+  "limitations": [
+    "No full regression or real-provider acceptance in this stage",
+    "An in-flight model request may be repeated after a crash before result persistence; its reservation remains charged",
+    "Stage 2 long-conversation memory and Stage 4 LangSmith remain pending"
+  ]
+}

@@ -1,0 +1,160 @@
+{
+  "date": "2026-10-20",
+  "stage": "1-model-adapters",
+  "status": "accepted_by_user",
+  "archive": {
+    "directory_name": "20261020-180520-before-langchain",
+    "status": "sealed",
+    "source_files": 6167,
+    "restore_verified_tables": 184
+  },
+  "baseline_python": {
+    "total": 440,
+    "passed": 423,
+    "failed": 17,
+    "failure_ids": [
+      "tests/integration/test_clarification_api.py::test_question_only_and_empty_evidence_can_clarify_but_cannot_invent_citations",
+      "tests/integration/test_workbench_api.py::test_keyword_only_has_no_semantic_stage_and_real_citations",
+      "tests/unit/test_evidence_coverage.py::test_bad_review_citations_get_one_repair_and_never_enter_final_answer",
+      "tests/unit/test_evidence_coverage.py::test_draft_and_review_share_one_repair_budget",
+      "tests/unit/test_evidence_coverage.py::test_explicit_review_disable_preserves_single_call",
+      "tests/unit/test_evidence_coverage.py::test_grounded_answer_deduplicates_repeated_passage_references",
+      "tests/unit/test_evidence_coverage.py::test_grounded_answer_keeps_authority_and_discards_model_factual_edits",
+      "tests/unit/test_evidence_coverage.py::test_grounded_answer_never_truncates_a_large_rule_to_hide_its_condition",
+      "tests/unit/test_evidence_coverage.py::test_permission_revocation_prevents_review_and_commit",
+      "tests/unit/test_evidence_coverage.py::test_review_does_not_evict_evidence_or_exceed_budget_to_fit_draft",
+      "tests/unit/test_evidence_coverage.py::test_review_refusal_discards_the_answered_draft",
+      "tests/unit/test_evidence_coverage.py::test_review_replaces_draft_and_uses_same_authorized_evidence_without_rubric",
+      "tests/unit/test_evidence_coverage.py::test_short_references_resolve_to_canonical_citations_in_draft_and_review",
+      "tests/unit/test_evidence_coverage.py::test_unknown_short_reference_is_rejected_and_diagnostics_exclude_model_text",
+      "tests/unit/test_generation.py::test_whole_records_and_evidence_budget",
+      "tests/unit/test_generation_streaming.py::test_streamed_chat_finalizes_only_validated_claims[False]",
+      "tests/unit/test_generation_streaming.py::test_streamed_chat_finalizes_only_validated_claims[True]"
+    ]
+  },
+  "migrated_python": {
+    "total": 461,
+    "passed": 444,
+    "failed": 17,
+    "new_failure_ids": []
+  },
+  "baseline_node": {
+    "total": 85,
+    "passed": 76,
+    "failed": 9,
+    "failure_names": [
+      "already-created ticket receipts stay in audit records after cancellation clears the view",
+      "answer sources follow the answer and group cited documents while opening an actual cited chunk",
+      "closing an expired proposal clears the conversation after the cancellation fallback succeeds",
+      "failed local persistence does not advance or discard the reviewed answer",
+      "review navigation selects every record in the same batch and keeps per-run drafts",
+      "save-and-next binds the label to the reviewed run and persists before moving",
+      "successful cancellation clears messages and draft, detaches history, and preserves records",
+      "the final review saves and closes without jumping into another batch",
+      "workbench boot restores interrupted cache without starting model requests"
+    ]
+  },
+  "migrated_node": {
+    "total": 85,
+    "passed": 76,
+    "failed": 9,
+    "new_failure_names": []
+  },
+  "before_switch_model_contracts": {
+    "passed": 21,
+    "failed": 0
+  },
+  "streaming_boundary_contracts": {
+    "passed": 23,
+    "failed": 0
+  },
+  "dependencies": {
+    "langchain": "1.4.6",
+    "langchain-core": "1.6.12",
+    "langchain-openai": "1.7.2",
+    "langgraph": "1.2.16",
+    "langsmith": "0.14.11",
+    "openai": "3.35.1"
+  },
+  "paid_model_calls": false,
+  "cloud_tracing_enabled": false,
+  "business_schema_migrated": false,
+  "removed_after_acceptance": [
+    "LegacyCompatibleGenerationClient HTTP/SSE implementation",
+    "LegacyCompatibleAgentModel HTTP implementation"
+  ],
+  "remaining": [
+    "Long-conversation semantic compression",
+    "LangChain/LangGraph agent execution and durable checkpoint migration",
+    "LangSmith application tracing and evaluations",
+    "Pre-existing regression failures"
+  ],
+  "changed_files_in_this_stage": [
+    "app/core/langchain_models.py",
+    "app/generation/provider.py",
+    "app/agent/provider.py",
+    "tests/unit/test_langchain_migration.py",
+    "tests/unit/test_agent_protocol.py",
+    "tests/unit/test_generation.py",
+    "tests/unit/test_generation_streaming.py",
+    "tests/unit/test_day8_evaluation.py",
+    "tests/integration/test_workbench_session.py",
+    "scripts/start_accounts.ps1",
+    "README.md",
+    "docs/README.md",
+    "docs/langchain-migration.md",
+    ".env.example",
+    "pyproject.toml",
+    "requirements.lock"
+  ],
+  "archive_integrity_rechecked": true,
+  "untouched_source_files_preserved": true,
+  "final_targeted_regression": {
+    "passed": 86,
+    "failed": 0,
+    "excluded_preexisting_tests": [
+      "tests/unit/test_generation.py::test_whole_records_and_evidence_budget",
+      "tests/unit/test_generation_streaming.py::test_streamed_chat_finalizes_only_validated_claims[False]",
+      "tests/unit/test_generation_streaming.py::test_streamed_chat_finalizes_only_validated_claims[True]"
+    ]
+  },
+  "runtime_smoke": {
+    "url": "http://127.0.0.1:18000/",
+    "workspace": "ko_rd_it_v1",
+    "python_environment": ".venv-knowledgeops-langchain",
+    "http_200_paths": [
+      "/health",
+      "/",
+      "/settings",
+      "/knowledge",
+      "/workbench/knowledge",
+      "/conversations"
+    ]
+  },
+  "manual_acceptance": {
+    "date": "2026-10-20",
+    "status": "passed",
+    "reported_by": "user",
+    "confirmation": "现在全部测试验收完毕",
+    "scope": [
+      "已发布文档问答符合原文，引用可打开",
+      "完整生成与校验后逐字显示最终答案",
+      "工具调用正常",
+      "工单确认后创建成功，IT 支持队列可查看",
+      "工单入口、标签选中状态与导航显示修复后的整体业务验收"
+    ],
+    "limitations": "用户业务验收通过不代表原有自动化回归失败已修复，也不代表后续迁移阶段已完成。"
+  },
+  "paid_model_calls_scope": "此前离线自动化验证未调用付费模型；用户真实供应商验收单独记录，不据此推断费用。",
+  "validated_display_regression": {
+    "total": 96,
+    "passed": 87,
+    "failed": 9,
+    "new_failure_names": [],
+    "scope": "加入校验后逐字展示后的前端回归快照；原有 9 项失败与模型迁移前相同，随后导航样式修复另经实际页面检查。",
+    "related_subset": {
+      "passed": 22,
+      "failed": 0
+    }
+  }
+}

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
+const {appendFollowUp}=await import('data:text/javascript;base64,'+Buffer.from(await readFile(new URL('../../app/web/follow-up.js',import.meta.url),'utf8')).toString('base64'));
 const source=await readFile(new URL('../../app/web/workbench.js',import.meta.url),'utf8');
 const messageCode=source.slice(source.indexOf('function messageLabel('),source.indexOf('async function runChat('));
 class Element {
@@ -13,6 +14,7 @@ class Element {
 function harness(){
   const log=new Element(),input=new Element(),opened=[];
   const context=vm.createContext({
+    appendFollowUp:(container,response)=>appendFollowUp(container,response,{createElement:tag=>new Element(tag)}),
     document:{createElement:tag=>new Element(tag)},
     $:id=>id==='message'?input:log,
     el:(tag,cls='',text='')=>Object.assign(new Element(tag),{className:cls,textContent:String(text)}),

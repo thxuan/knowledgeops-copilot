@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-20",
+  "scope": "Repository cleanup after stage-1 business acceptance",
+  "python": {"passed": 458, "failed": 0, "errors": 0, "skipped": 0, "warnings": 1},
+  "javascript": {"passed": 88, "failed": 0, "skipped": 0},
+  "python_test_count_change": {
+    "before": 463,
+    "removed_preview_parser_tests": 2,
+    "removed_inactive_whole_source_tests": 4,
+    "added_validated_claim_rendering_test": 1,
+    "after": 458
+  },
+  "javascript_test_count_change": {"before": 96, "removed_inactive_browser_restore_tests": 8, "after": 88},
+  "dependency_check": "passed",
+  "duplicate_source_files_over_100_bytes": 0,
+  "paid_model_calls": false,
+  "application_database_migrated": false,
+  "application_service_restarted": false,
+  "validation_environment": "Separate checkout copy, pinned LangChain environment, randomized PostgreSQL test schemas",
+  "local_artifacts": ["cleanup-review.patch", "cleanup-manifest.json", "cleanup-python-final.log", "cleanup-python-final.xml", "cleanup-node-final.log", "cleanup-deployed.json"],
+  "retained": ["Active Agent execution and memory pending later migration", "Business authorization, approval, transactions and history", "Runtime data, private configuration and sealed backup", "Pre-existing uncommitted and untracked changes"],
+  "limitations": "Offline engineering regressions do not establish real-model semantic accuracy or production stability."
+}

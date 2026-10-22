@@ -1,9 +1,9 @@
+from tests.doubles import seed_published_legacy
 from tests.doubles import ExtractiveGenerationDouble
 from conftest import pg_dsn
 import asyncio
 import json
 from dataclasses import replace
-from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 from app.api.schemas import ChatRequest
@@ -45,6 +45,7 @@ def seed(app, client, text, source):
         data={"source": source, "version": "v1"}).json()
     app.state.ingestion_worker.process_next()
     doc = receipt["document_id"]
+    seed_published_legacy(app,doc)
     result = client.post(f"/documents/{doc}/chunks", headers=HEADERS, json={}).json()
     return [{"chunk_id": c["chunk_id"], "document_id": doc, "text": c["text"], "score": 1,
              "source": c["source"], "version": c["version"], "citation": asdict(make_citation(c, result["chunk_set_id"]))}

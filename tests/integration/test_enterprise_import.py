@@ -3,13 +3,11 @@ import asyncio
 from dataclasses import asdict
 import json
 from uuid import uuid4
-import pytest
 from psycopg import sql
 from psycopg.conninfo import make_conninfo
 from conftest import pg_dsn
 from app.agent.contracts import AgentSettings
 from app.agent.service import AgentService
-from app.core.errors import AppError
 from app.core.identity import LOCAL_IDENTITIES
 from app.db.agent import AgentRepository
 from app.db.chunks import ChunkRepository
@@ -52,6 +50,20 @@ def test_enterprise_import_isolated_idempotent_and_uses_stored_evidence(tmp_path
             assert db.execute("SELECT count(*) AS n FROM document_access WHERE document_id=%s AND user_id=%s",
                               (public_id, "u_support_001")).fetchone()["n"] == 0
             db.execute("UPDATE ko_agent_permissions SET can_write=true WHERE user_id=%s", (owner.user_id,))
+
+        # The importer now stages private files. Explicitly seed an already-reviewed baseline
+        # for the independent Agent/evidence checks below; importing itself never approves.
+        manifest=json.loads((tmp_path/'manifest.json').read_text(encoding='utf-8'))
+        with intake.connection() as db:
+            assert db.execute("SELECT count(*) AS n FROM documents WHERE publication_state='draft'").fetchone()['n']==15
+            for item in manifest['documents']:
+                d=db.execute('SELECT document_id FROM documents WHERE source=%s',(item['source'],)).fetchone()
+                did=d['document_id']
+                db.execute("UPDATE documents SET publication_state='published' WHERE document_id=%s",(did,))
+                db.execute('INSERT INTO document_chunk_heads SELECT document_id,chunk_set_id FROM chunk_sets WHERE document_id=%s ON CONFLICT(document_id) DO NOTHING',(did,))
+                for user in item['user_ids']:
+                    if not (did==public_id and user=='u_support_001'):
+                        db.execute('INSERT INTO document_access VALUES (%s,%s) ON CONFLICT DO NOTHING',(did,user))
 
         class StoredRetrieval:
             async def retrieve(self, query, identity, top_k=3):

@@ -1,0 +1,68 @@
+{
+  "date": "2026-10-22",
+  "stage": "3-agent-execution",
+  "status": "accepted_by_user",
+  "entrypoint": "langchain.agents.create_agent",
+  "factory_location": "app/agent/service.py",
+  "custom_graph_removed": "app/agent/graph.py",
+  "policy_location": "app/agent/middleware.py",
+  "model_bridge": "app/agent/chat_model.py (single-turn BaseChatModel -> existing LangChain ChatOpenAI adapter)",
+  "framework_owned": [
+    "model/tool loop",
+    "tool dispatch",
+    "framework message accumulation",
+    "LangGraph checkpoint execution"
+  ],
+  "application_owned": [
+    "authorization",
+    "durable budget reservations",
+    "bounded retries and final validation",
+    "transactional ticket confirmation",
+    "business audit and API/SSE projection"
+  ],
+  "checkpoint_namespace": "create-agent-v1:",
+  "legacy_compatibility": "Keep old graph checkpoints; initialize create_agent from latest durable business facts",
+  "validation": {
+    "passed": 12,
+    "failed": 0,
+    "new_migration_checks": 5,
+    "existing_critical_checks": 7,
+    "full_regression_run": false,
+    "paid_model_calls": false,
+    "groups": [
+      {
+        "passed": 11,
+        "scope": "four migration checks, concurrency, three budgets, API/SSE, post-commit format repair, process exit recovery"
+      },
+      {
+        "passed": 1,
+        "scope": "real LangChain adapter with offline HTTP; model-tool-model, usage, stored framework messages"
+      }
+    ],
+    "test_file": "tests/integration/test_langgraph_agent.py",
+    "warning": "Existing Starlette TestClient AnyIO alias deprecation"
+  },
+  "runtime_smoke": {
+    "url": "http://127.0.0.1:18000/",
+    "workspace": "ko_rd_it_v1",
+    "runtime": "create-agent-stage3",
+    "http_200_paths": [
+      "/health",
+      "/",
+      "/settings",
+      "/knowledge",
+      "/workbench/assets/workbench.css"
+    ]
+  },
+  "user_acceptance": {
+    "status": "passed",
+    "date": "2026-10-22",
+    "reported_by": "user",
+    "confirmation": "可以了。接着评测部分，我们还是自己追踪计费吗？langsmith可以替代吗？"
+  },
+  "long_conversation_memory": "unchanged; stage 2 not started",
+  "limitations": [
+    "No full regression or real-provider acceptance",
+    "An in-flight model call can be repeated after a crash before its result is durable; its reservation remains counted"
+  ]
+}

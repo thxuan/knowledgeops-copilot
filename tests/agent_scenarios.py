@@ -1,10 +1,10 @@
 """Executable Agent scenario oracles. Scripted policy != real-model quality."""
-import asyncio
 import json
 import time
 from uuid import uuid4
 from app.agent.contracts import ApprovalRequest, dump
-from app.agent.provider import tool_message, Retryable
+from app.agent.provider import Retryable
+from tests.doubles import tool_message
 from app.agent.service import AgentService
 from app.core.errors import AppError
 from app.db.agent import AgentRepository

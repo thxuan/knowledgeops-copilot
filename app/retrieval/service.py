@@ -45,6 +45,7 @@ class VectorService:
             await asyncio.sleep(min(0.1 * 2 ** (attempt - 1), 1))
 
     async def index_document(self, document_id, identity):
+        await asyncio.to_thread(self.chunks.require_published, document_id, identity)
         started = time.perf_counter()
         snapshot = await asyncio.to_thread(self.chunks.get, document_id, identity)
         if not snapshot["count"]:
@@ -77,8 +78,8 @@ class VectorService:
 
     def allowed_sets(self, identity, filters=None):
         filters = filters or {}
-        conditions = ["d.tenant_id=%s", "a.user_id=%s", "j.status='succeeded'", "d.active=1"]
-        params = [identity.tenant_id, identity.user_id]
+        conditions = ["d.tenant_id=%s", "(EXISTS(SELECT 1 FROM document_access a WHERE a.document_id=d.document_id AND a.user_id=%s) OR %s)", "j.status='succeeded'", "d.active=1", "d.publication_state='published'", "d.withdrawn=0"]
+        params = [identity.tenant_id, identity.user_id, 'manage_platform' in identity.platform_capabilities]
         if filters.get("document_ids") is not None:
             ids = filters["document_ids"]
             if not ids:
@@ -94,7 +95,7 @@ class VectorService:
             params.append(filters["source"])
         with self.chunks.ingestion.connection() as db:
             return [dict(row) for row in db.execute("""SELECT d.document_id,h.chunk_set_id
-                FROM documents d JOIN document_access a USING(document_id)
+                FROM documents d
                 JOIN document_chunk_heads h USING(document_id) JOIN ingestion_jobs j USING(document_id)
                 WHERE """ + " AND ".join(conditions), params)]
 

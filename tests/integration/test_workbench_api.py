@@ -1,8 +1,8 @@
+from tests.doubles import seed_published_legacy
 from tests.doubles import HashEmbeddingDouble
 from tests.doubles import ExtractiveGenerationDouble
 """Real HTTP + PostgreSQL coverage of trace, source metrics and scoped parameters."""
 import json
-from dataclasses import replace
 from pathlib import Path
 from uuid import uuid4
 import pytest
@@ -28,7 +28,7 @@ class ProtocolDouble(ExtractiveGenerationDouble):
 def workbench_app():
     url = pg_dsn('workbench')
     app = create_app(Settings(app_env='test',database_url=url,vector_database_url=url,
-        embedding=EmbeddingSettings(provider='compatible', model_id='test-embedding', api_key='test-only', dimensions=16,collection='wb-'+uuid4().hex),ingestion_worker_enabled=False,
+        embedding=EmbeddingSettings(provider='compatible', model_id='test-embedding', api_key='test-only', dimensions=16,collection='wb-'+uuid4().hex),ingestion_worker_enabled=False,index_worker_enabled=False,
         generation=GenerationSettings(provider='compatible',model_id='test-real-adapter',api_key='test-only',coverage_review=False)),generation_client=ProtocolDouble())
     app.state.vector_service.client = HashEmbeddingDouble(app.state.settings.embedding)
     with TestClient(app) as client:
@@ -41,6 +41,7 @@ def workbench_app():
             assert upload.status_code == 202, upload.text
             receipt = upload.json()
             app.state.ingestion_worker.process_next()
+            seed_published_legacy(app,receipt['document_id'])
             assert client.post(f"/documents/{receipt['document_id']}/chunks",headers=HEADERS,json={}).status_code == 200
             assert client.post(f"/documents/{receipt['document_id']}/index",headers=HEADERS).status_code == 200
             receipts.append(receipt)

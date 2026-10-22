@@ -7,11 +7,8 @@ import sys
 import time
 from uuid import uuid4
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from app.agent.provider import CompatibleAgentModel
-from app.agent.service import AgentService
 from app.core.config import Settings
 from app.core.identity import LOCAL_IDENTITIES
-from app.db.agent import AgentRepository
 from app.main import create_app
 
 async def main():

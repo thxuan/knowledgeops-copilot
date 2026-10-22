@@ -14,6 +14,12 @@ from app.retrieval.rerank import RerankSettings
 class Settings:
     agent: AgentSettings = AgentSettings()
     app_env: str = "local"
+    auth_mode: str = "demo"
+    auth_database_url: str | None = None
+    auth_cookie_secure: bool = True
+    auth_session_seconds: int = 28800
+    public_origin: str = "https://localhost"
+    index_worker_enabled: bool = True
     max_document_bytes: int = 1_048_576
     database_url: str = DEFAULT_DATABASE_URL
     ingestion_worker_enabled: bool = True
@@ -63,7 +69,6 @@ class Settings:
                 top_p=(float(os.environ["KNOWLEDGEOPS_GENERATION_TOP_P"])
                     if os.getenv("KNOWLEDGEOPS_GENERATION_TOP_P") else None),
                 coverage_review=review == "true",
-                answer_mode=os.getenv("KNOWLEDGEOPS_GENERATION_ANSWER_MODE", "generated"),
             ),
             vector_database_url=database_url,
             embedding=EmbeddingSettings(
@@ -80,6 +85,12 @@ class Settings:
                 cost_per_million_tokens=(float(os.environ["KNOWLEDGEOPS_EMBEDDING_COST_PER_MILLION_TOKENS"])
                     if os.getenv("KNOWLEDGEOPS_EMBEDDING_COST_PER_MILLION_TOKENS") else None),
             ),
+            auth_mode=os.getenv('KNOWLEDGEOPS_AUTH_MODE','demo'),
+            auth_database_url=os.getenv('KNOWLEDGEOPS_AUTH_DATABASE_URL') or database_url,
+            auth_cookie_secure=os.getenv('KNOWLEDGEOPS_AUTH_COOKIE_SECURE','true').lower()=='true',
+            auth_session_seconds=int(os.getenv('KNOWLEDGEOPS_AUTH_SESSION_SECONDS','28800')),
+            public_origin=os.getenv('KNOWLEDGEOPS_PUBLIC_ORIGIN','https://localhost').rstrip('/'),
+            index_worker_enabled=os.getenv('KNOWLEDGEOPS_INDEX_WORKER_ENABLED','true').lower()=='true',
             app_env=os.getenv("KNOWLEDGEOPS_APP_ENV", "local"),
             max_document_bytes=int(os.getenv("KNOWLEDGEOPS_MAX_DOCUMENT_BYTES", "1048576")),
             database_url=database_url,
@@ -104,8 +115,16 @@ class Settings:
         self.retrieval.validate()
         self.embedding.validate()
         self.generation.validate()
-        if self.app_env not in {"local", "test"}:
-            raise ValueError("Local test authentication cannot be used in production")
+        if self.auth_mode not in {'demo','accounts'} or self.app_env not in {'local','test','production'}:
+            raise ValueError('Unsupported environment or authentication mode')
+        if self.app_env=='production' and (self.auth_mode!='accounts' or not self.auth_cookie_secure):
+            raise ValueError('Production requires account authentication and secure cookies')
+        from urllib.parse import urlsplit
+        origin=urlsplit(self.public_origin)
+        if origin.scheme not in {'http','https'} or not origin.netloc or origin.username or origin.password or origin.path not in {'','/'} or origin.query or origin.fragment:
+            raise ValueError('PUBLIC_ORIGIN must be an origin without paths or credentials')
+        if self.auth_mode=='accounts' and (not 300<=self.auth_session_seconds<=86400 or (origin.scheme!='https' and (self.app_env=='production' or origin.hostname not in {'127.0.0.1','localhost','::1'}))):
+            raise ValueError('Account login requires HTTPS except explicit local loopback testing')
         if self.max_document_bytes < 1:
             raise ValueError("Size and token limits must be positive")
 

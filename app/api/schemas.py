@@ -47,12 +47,6 @@ class TaskResponse(BaseModel):
     events: list[TaskEventResponse]
 
 
-class ToolCallResponse(BaseModel):
-    call_id: str
-    name: str
-    result: str
-
-
 class ChunkBuildRequest(BaseModel):
     strategy: Literal["fixed", "structure"] = "structure"
     size: int = Field(default=400, ge=32, le=8192, strict=True)
@@ -273,9 +267,11 @@ class ChatContextResponse(BaseModel):
     model_usage: list[dict] = Field(default_factory=list)
     evidence_chunk_ids: list[str] = Field(default_factory=list)
     omitted_evidence_ids: list[str] = Field(default_factory=list)
-    coverage_review: Literal["not_needed", "disabled", "completed", "skipped_budget", "failed"] = "not_needed"
+    coverage_review: Literal["not_needed", "disabled", "completed", "skipped_budget", "skipped_clarification", "failed"] = "not_needed"
     validation_failures: list[dict[str, str | int]] = Field(default_factory=list)
+    # Keep the historical value readable; new responses always use generated.
     answer_mode: Literal["grounded", "generated"] = "generated"
+    follow_up_origin: str | None = None
     effective_config: dict | None = None
 
 
@@ -288,7 +284,8 @@ class ChatResponse(BaseModel):
     citations: list[CitationResponse]
     claims: list[Claim]
     insufficient_context: bool
-    status: Literal["answered", "refused", "rejected"]
+    follow_up: str | None = None
+    status: Literal["answered", "refused", "rejected", "needs_clarification"]
     reason: str | None
     model_provider: str
     model_id: str

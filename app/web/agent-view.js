@@ -7,7 +7,7 @@ export function action(label, callback, cls='secondary-button') {
 export function timeLabel(value) {
   return typeof value==='number'&&Number.isFinite(value)?new Date(value*1000).toLocaleString('zh-CN',{hour12:false}):'历史记录未保存时间';
 }
-export function ticketStatus(ticket){return ticket.workflow?.status_label||({queued:'待受理',pending_triage:'待人工分诊',pending_approval:'待业务审批',approved:'审批通过 · 未执行',rejected:'申请已拒绝',created:'已创建 · 待分配'})[ticket.status]||'状态待核对';}
+export function ticketStatus(ticket){return ticket.workflow?.status_label||({queued:'待受理',pending_triage:'待人工分诊',pending_approval:'待业务审批',approved:'审批通过 · 未执行',rejected:'申请已拒绝',in_progress:'处理中',resolved:'已解决 · 待确认',closed:'已关闭',created:'已创建 · 待分配'})[ticket.status]||'状态待核对';}
 export function ticketLink(id, label='查看工单详情') {
   const a=node('a','secondary-button',label);a.href='/workbench/tickets/'+encodeURIComponent(id);return a;
 }

@@ -4,7 +4,7 @@ import unicodedata
 
 POLICY_VERSION = "local-ticket-policy-v1"
 CATEGORY_LABELS = {"incident": "普通故障", "standard": "标准服务请求", "sensitive": "敏感申请", "uncertain": "待人工分诊", "prohibited": "禁止操作"}
-STATUS_LABELS = {"queued": "待受理", "pending_triage": "待人工分诊", "pending_approval": "待业务审批", "approved": "审批通过 · 未执行", "rejected": "申请已拒绝"}
+STATUS_LABELS = {"queued": "待受理", "pending_triage": "待人工分诊", "pending_approval": "待业务审批", "approved": "审批通过 · 未执行", "rejected": "申请已拒绝", "in_progress":"处理中", "resolved":"已解决 · 待确认", "closed":"已关闭"}
 REVIEW_SCOPES = {"access_review": "权限申请审批", "security_review": "安全例外审批", "production_review": "生产变更审批"}
 RISK_RULES = (
     ("access_review", r"管理员权限|(?:root|sudo)\s*权限|提权|权限提升|提升权限|受限(?:数据|资源|系统)|跨部门.{0,8}(?:访问|数据)|(?:申请|开通|授予|新增).{0,12}(?:权限|生产访问)|admin(?:istrator)?\s+(?:access|privileges)|privilege\s+escalation"),

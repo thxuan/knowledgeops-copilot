@@ -8,10 +8,10 @@ description = "Evidence-grounded enterprise knowledge assistant with controlled 
 readme = "README.md"
 version = "0.1.0"
 requires-python = ">=3.11"
-dependencies = ["fastapi==0.115.12", "pydantic==2.11.7", "python-multipart==0.0.20", "uvicorn==0.34.3", "httpx==0.28.1", "psycopg[binary]==3.2.10"]
+dependencies = ["argon2-cffi==25.1.0", "fastapi==0.115.12", "pydantic==2.11.7", "python-multipart==0.0.20", "uvicorn==0.34.3", "httpx==0.28.1", "psycopg[binary]==3.2.10", "langchain==1.4.6", "langchain-core==1.6.12", "langchain-openai==1.7.2", "langgraph==1.2.16", "langgraph-checkpoint==4.3.0", "langsmith==0.14.11"]
 
 [project.optional-dependencies]
-dev = ["httpx==0.28.1", "pytest==8.4.1"]
+dev = ["pytest==8.4.1"]
 
 [tool.setuptools.packages.find]
 include = ["app*"]

@@ -1,5 +1,6 @@
 // Only explicitly selected experiment data is stored; connection forms are never read.
 export function scopeKey(identity, connection) {
+  if(connection.fingerprint)return JSON.stringify([identity,connection.fingerprint]);
   const d=connection.database,e=connection.embedding;
   return JSON.stringify([identity,d.host,d.port,d.database,d.schema_name,e.collection]);
 }

@@ -1,5 +1,7 @@
 # 五分钟 API 演示
 
+文档更新、历史回滚、发布前后同题与权限对照的完整步骤见 [文档生命周期演示](document-lifecycle.md)。
+
 先按 README 启动应用、配置真实模型，并上传文档构建索引或恢复样例备份，再打开 `http://127.0.0.1:8000/docs`。各业务请求填写请求头 `X-Local-User-Id: u_engineer_001`。接口返回的 ID 每次环境可能不同，以下使用实际响应值，不需要手工访问数据库。
 
 ## 1. 查证据，再问答
@@ -62,7 +64,7 @@ python scripts/setup_agent_demo.py --database-url "你的目标 PostgreSQL DSN"
 {"action_id":"从 pending 复制","version":1,"digest":"从 pending 复制的64位摘要","approve":true}
 ```
 
-继续查询至 completed，展示 committed 工具结果中的 ticket_id。再次提交同一个审批不会创建第二张工单。approve=false 会拒绝提案；每个演示新任务使用新 request_key。工单只存在于本地模拟表，不会发送邮件或创建外部工单。
+这里的 approve=true 是申请人确认提交提案，不是业务审核通过。继续查询至 completed，展示 committed 工具结果中的 ticket_id。普通请求进入受理队列；敏感请求还需具备独立审核能力的身份在工单页处理，禁止自审，业务批准不等于已执行。再次提交同一个审批不会创建第二张工单。approve=false 会拒绝提案；每个演示新任务使用新 request_key。工单只存在于本地模拟表，不会发送邮件或创建外部工单。
 
 ## 5. 权限与事件回放
 

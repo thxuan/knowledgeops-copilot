@@ -1,6 +1,5 @@
 from tests.doubles import HashEmbeddingDouble
 import asyncio
-from dataclasses import replace
 import math
 from types import SimpleNamespace
 import pytest
@@ -80,7 +79,7 @@ def test_batch_limit_concurrency_and_atomic_failure():
     settings = EmbeddingSettings(batch_size=2, concurrency=2)
     snapshot = {"count": 7, "chunk_set_id": "set", "chunks": [
         {"title": "VPN", "heading_paths": [["TL-403"]], "text": "设备合规"} for _ in range(7)]}
-    chunks = SimpleNamespace(get=lambda *args: snapshot)
+    chunks = SimpleNamespace(get=lambda *args: snapshot, require_published=lambda *args: None)
     identity = SimpleNamespace(tenant_id="tenant")
     for invalid in [False, True]:
         repo, client = RecordingRepository(), FlakyClient(settings, invalid=invalid)

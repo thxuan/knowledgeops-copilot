@@ -11,11 +11,15 @@ from app.generation.models import GeneratedAnswer, parse_generation
 from app.generation.provider import GenerationSettings, CompatibleGenerationClient
 
 def test_whole_records_and_evidence_budget():
-    settings = GenerationSettings(input_limit=6500, output_limit=1200, history_budget=800)
+    settings = GenerationSettings(output_limit=1200, history_budget=800)
     user = {"message_id": 7, "role": "user", "content": "不是 TL-403，是 MAIL-552；上限 25 MB，禁止外发。"}
+    small = {"chunk_id": "small", "source": "s", "version": "v1", "text": "MAIL-552 上限 25 MB，禁止外发。"}
+    required = build_context("这个限制是什么？", [user], {}, [small], settings).input_estimate
+    # Context reserves at most a third of spare input space for user history.
+    settings = replace(settings, input_limit=required + settings.output_limit + settings.history_budget * 3)
     context = build_context("这个限制是什么？", [user], {}, [
         {"chunk_id": "huge", "source": "s", "version": "v1", "text": "长" * 5000},
-        {"chunk_id": "small", "source": "s", "version": "v1", "text": "MAIL-552 上限 25 MB，禁止外发。"}], settings)
+        small], settings)
     payload = json.loads(context.messages[-1]["content"])
     assert payload["history"][0]["text"] == user["content"]
     assert [h["chunk_id"] for h in context.evidence] == ["small"]
@@ -46,7 +50,7 @@ def test_compatible_json_adapter(finish, status):
         assert body["max_tokens"] == 2048
         assert request.headers["Authorization"] == "Bearer test-key"
         return httpx.Response(status, json={"choices": [{"finish_reason": finish,
-            "message": {"content": "{}"}}]})
+            "message": {"role": "assistant", "content": "{}"}}]})
     settings = GenerationSettings(provider="compatible", model_id="fixture", api_key="test-key")
     call = CompatibleGenerationClient(httpx.MockTransport(handler)).generate(
         [{"role": "system", "content": "JSON"}], settings)
@@ -96,4 +100,3 @@ def test_real_sample_correction_keeps_mail_evidence_in_top5():
         assert "TeamDrive" in answer.answer and "外发" in answer.answer
         assert "ShieldDesk" not in answer.answer
     asyncio.run(run())
-

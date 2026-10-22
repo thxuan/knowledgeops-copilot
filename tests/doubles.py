@@ -2,12 +2,38 @@
 import json, re, hashlib, math
 from app.core.embedding import EmbeddingResult
 from app.generation.models import GeneratedClaims
-from app.generation.provider import terms
-from app.agent.provider import tool_message
+from uuid import uuid4
 from app.agent.contracts import dump
 from app.retrieval.rerank import RerankResult
 from app.retrieval.lexical import bm25
 CALC_PATTERN = re.compile(r"^\s*(?:calc\s*:|计算\s*[:：]?)\s*(-?\d+(?:\.\d+)?)\s*([+*/-])\s*(-?\d+(?:\.\d+)?)\s*$", re.I)
+
+
+def terms(text):
+    result = set(re.findall(r"[a-z0-9]+(?:[-_.][a-z0-9]+)*", text.lower()))
+    for run in re.findall(r"[\u4e00-\u9fff]+", text):
+        result.update(run[i:i + 2] for i in range(len(run) - 1))
+    return result - {"什么", "怎么", "如何", "可以", "需要", "这个", "那个", "多久", "然后", "问题"}
+
+
+def tool_message(name, arguments):
+    return {"role": "assistant", "content": None, "tool_calls": [{"id": uuid4().hex,
+        "type": "function", "function": {"name": name, "arguments": dump(arguments)}}]}
+
+
+def assessed_output(claims=(), *, follow_up=None, refused=False):
+    """Synthetic general claims using the current compatible-model wire contract."""
+    return json.dumps({
+        "applicability": {
+            "evidence_status": "insufficient" if refused else "relevant",
+            "conditions": ([{"name": "details", "value": None, "status": "missing",
+                             "user_quote": None, "question": follow_up}] if follow_up else []),
+            "claim_scopes": [{"scope": "general", "conditions": []} for _ in claims],
+        },
+        "insufficient_context": refused, "claims": list(claims), "follow_up": follow_up,
+    }, ensure_ascii=False)
+
+
 class ExtractiveGenerationDouble:
     async def generate(self, messages, settings):
         payload = json.loads(messages[-1]["content"])
@@ -29,12 +55,16 @@ class ExtractiveGenerationDouble:
                 if overlap >= 2:
                     candidates.append((overlap, line, hit["chunk_id"]))
         if not candidates:
-            return GeneratedClaims(insufficient_context=True, claims=[]).model_dump_json()
+            return (assessed_output(refused=True) if settings.provider == 'compatible'
+                    else GeneratedClaims(insufficient_context=True, claims=[]).model_dump_json())
         _, text, cid = max(candidates, key=lambda c: c[0])
         result = GeneratedClaims(insufficient_context=False,
                                  claims=[{"text": text, "citations": [cid]}]).model_dump_json()
         if len(result.encode("utf-8")) > settings.output_limit:
             return GeneratedClaims(insufficient_context=True, claims=[]).model_dump_json()
+        if settings.provider == 'compatible':
+            parsed = json.loads(result)
+            return assessed_output(parsed['claims'], refused=parsed['insufficient_context'])
         return result
 
 
@@ -85,3 +115,10 @@ class LexicalRerankDouble:
                 for i, text in enumerate(documents)]
         scores = {int(h["chunk_id"]): h["score"] for h in bm25(query, hits, len(hits))}
         return RerankResult([(i, min(1.0, scores.get(i, 0.0) / 10)) for i in range(len(hits))], 0, "test-lexical")
+
+
+def seed_published_legacy(app, document_id):
+    """Explicit baseline for old indexed-corpus tests; new-upload review tests never use this."""
+    assert app.state.settings.app_env == 'test'
+    with app.state.ingestion_repository.connection() as db:
+        db.execute("UPDATE documents SET publication_state='published' WHERE document_id=%s", (document_id,))

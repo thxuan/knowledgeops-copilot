@@ -5,7 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 from app.agent.contracts import AgentSettings, ApprovalRequest, TicketDecision, ProposalRevision
 from app.core.errors import AppError
-from app.core.identity import LOCAL_IDENTITIES, Identity
+from app.core.identity import LOCAL_IDENTITIES
 from app.db.agent import AgentRepository
 from app.main import create_app
 from app.core.config import Settings

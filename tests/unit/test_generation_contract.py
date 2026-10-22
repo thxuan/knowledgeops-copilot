@@ -14,7 +14,7 @@ def test_server_assembles_claims_and_deduplicates_citations_in_order():
 
 def test_model_schema_omits_redundant_answer_and_top_level_citations():
     schema = GeneratedClaims.model_json_schema()
-    assert set(schema["properties"]) == {"insufficient_context", "claims"}
+    assert set(schema["properties"]) == {"insufficient_context", "claims", "follow_up"}
     assert schema["additionalProperties"] is False
     assert "不要输出 answer 或顶层 citations" in SYSTEM_PROMPT
 
@@ -37,7 +37,7 @@ def test_server_owns_refusal_and_keeps_external_answer_shape():
     answer = parse_generation('{"insufficient_context":true,"claims":[]}')
     assert answer.answer == REFUSAL
     assert answer.citations == answer.claims == []
-    assert set(answer.model_dump()) == {"answer", "citations", "claims", "insufficient_context"}
+    assert set(answer.model_dump()) == {"answer", "citations", "claims", "insufficient_context", "follow_up"}
 
 
 def test_assembled_answer_and_citation_limits_still_apply():

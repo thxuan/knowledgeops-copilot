@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-18",
+  "scope": "account login, platform administration, durable index queue, human ticket lifecycle",
+  "full_regression": {
+    "tests": 420,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "external_model_calls": 0
+  },
+  "final_focused_regression": {
+    "tests": 25,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "overlap_with_full_run": 22
+  },
+  "frontend_regression": {
+    "passed": 67
+  },
+  "browser": {
+    "auth_mode": "accounts",
+    "isolated_schema": true,
+    "temporary_synthetic_accounts": true,
+    "runtime_model": "tests-only doubles",
+    "verified": [
+      "admin account directory",
+      "engineer lacks configuration management",
+      "password login and logout",
+      "draft index finishes after leaving page",
+      "support claims and resolves ticket",
+      "requester confirms closure",
+      "station notification read acknowledgement",
+      "390px task center no horizontal overflow"
+    ],
+    "screenshots": [
+      "D:/leetcode/.test-artifacts/knowledgeops-accounts-ui.png",
+      "D:/leetcode/.test-artifacts/knowledgeops-index-jobs-ui.png",
+      "D:/leetcode/.test-artifacts/knowledgeops-ticket-closed-ui.png"
+    ]
+  },
+  "operating_mode": "daily workbench remains explicitly labeled demo until user initializes administrator password and enables accounts",
+  "not_verified": [
+    "real-model semantic answer quality",
+    "enterprise OIDC/MFA",
+    "production load and recovery SLA"
+  ]
+}

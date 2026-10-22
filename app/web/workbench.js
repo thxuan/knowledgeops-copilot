@@ -1,9 +1,13 @@
+import {installConversationHistory} from './conversation-history.js?v=20261020-history';
+import {appendFollowUp} from './follow-up.js';
+import {auth,authenticatedFetch as fetch} from './auth-session.js';
 import {readEventStream} from './event-stream.js';
 import {progressView,proposalView,receiptView,agentFailureMessage,currentProposal,proposalDecision} from './agent-view.js?v=20261017-ticket-policy';
 import * as cache from './experiment-cache.js';
 import * as records from './conversation-records.js';
 import {createScrollFollower} from './scroll-follow.js';
 import {createStreamControl} from './stream-control.js';
+import {validatedAnswerText,animateValidatedText} from './validated-display.js?v=20261020-validated-display';
 const $ = id => document.getElementById(id);
 const scrollFollower=createScrollFollower($('chat-log'),$('jump-latest'));
 let activeStream=null,retryDraft=null,sourceRequest=0,sourceTrigger=null;
@@ -11,8 +15,9 @@ const dialogTriggers=new WeakMap();
 try{const identity=sessionStorage.getItem('knowledgeops-identity');if([...$('identity').options].some(o=>o.value===identity))$('identity').value=identity;}catch{}
 const welcomeTemplate=$('welcome')?.cloneNode(true);
 function showWelcome(){if(welcomeTemplate)$('chat-log').replaceChildren(welcomeTemplate.cloneNode(true));scrollFollower.reset();retryDraft=null;$('retry-message').hidden=true;$('generation-status').textContent='';}
-const state = {view: "chat",recordView:'chat',sessionId:null,agentRuns:[],datasetUpload:null,dataset:null, evaluationMode:false, importBusy:false, batches:[], activeBatch:null, config:null, identity:$('identity').value, busy:false, epoch:0, conversation:null, runs:[], current:null, a:null, b:null, last:null, agent:null, agentRequest:null, review:null, batchRunning:false, batchStop:false, failures:[], agentByIdentity:new Map()};
+const state = {historyLoading:false,historyArchived:false,view: "chat",recordView:'chat',sessionId:null,agentRuns:[],datasetUpload:null,dataset:null, evaluationMode:false, importBusy:false, batches:[], activeBatch:null, config:null, identity:$('identity').value, busy:false, epoch:0, conversation:null, runs:[], current:null, a:null, b:null, last:null, agent:null, agentRequest:null, review:null, batchRunning:false, batchStop:false, failures:[], agentByIdentity:new Map()};
 let cacheScope=null,cacheReady=false,cacheTimer=null,cacheQueue=Promise.resolve();
+let conversationHistory=null;
 const savedFields=['semantic','keyword','rrf','rerank','semantic-k','keyword-k','fusion-k','rrf-constant','evidence-k','profile','search-mode','ef-search','temperature','top-p','output-limit','coverage-review','preset','dataset-split'];
 const stages = {vector:'语义候选',keyword:'BM25 候选',fusion:'RRF 融合',rerank:'重排结果',selection_pool:'多查询选择池',final:'最终检索结果',evidence:'进入模型的证据'};
 const statusNames = {answered:'已回答',refused:'证据不足 · 拒答',rejected:'输出未通过校验',running:'执行中',waiting_approval:'等待人工审批',completed:'已完成',cancelled:'已取消',failed:'执行失败',interrupted:'执行中断',needs_clarification:'需要补充信息'};
@@ -48,7 +53,7 @@ function validateControls() {
   return '';
 }
 function updateControls() {
-  const disabled=state.busy||state.importBusy||!state.config;
+  const disabled=state.busy||state.importBusy||state.historyLoading||!state.config;
   for(const id of ['retrieval-fields','evidence-fields','generation-fields'])$(id).disabled=disabled;
   $('reset-config').disabled=disabled;
   $('semantic-k').disabled=disabled||!$('semantic').checked; $('keyword-k').disabled=disabled||!$('keyword').checked;
@@ -62,9 +67,9 @@ function updateControls() {
   const err=!state.busy?validateControls():'';
   $('config-error').textContent=err; $('config-error').hidden=!err;
   $('toggle-parameters').textContent=err?'运行参数 · 需检查':'运行参数';
-  $('send').disabled=state.evaluationMode||state.importBusy||state.busy||!$('message').value.trim()||!state.config?.generation.ready||!!err||['running','waiting_approval','interrupted'].includes(state.agent?.status);
+  $('send').disabled=state.historyArchived||state.historyLoading||state.evaluationMode||state.importBusy||state.busy||!$('message').value.trim()||!state.config?.generation.ready||!!err||['running','waiting_approval','interrupted'].includes(state.agent?.status);
   for(const b of document.querySelectorAll('[data-agent]'))b.disabled=state.busy||['running','waiting_approval','interrupted'].includes(state.agent?.status);
-  $('identity').disabled=state.busy; $('question').disabled=state.busy; $('new-conversation').disabled=state.busy; $('model-settings').disabled=state.busy; $('intent').disabled=state.busy;
+  $('identity').disabled=state.busy; $('question').disabled=state.busy; $('new-conversation').disabled=state.busy; $('model-settings').disabled=state.busy||!auth.canManage; $('intent').disabled=state.busy;
   $('send').textContent=state.busy?'正在处理…':'发送 ↑';
   $('stop-generation').hidden=!activeStream?.canStop;
   $('stop-generation').disabled=!activeStream?.canStop;
@@ -74,6 +79,7 @@ function updateControls() {
   const waiting=state.agent?.status==='waiting_approval';
   const expired=waiting&&state.agent.pending?.expires_at*1000<=Date.now();
   $('composer-note').textContent=expired?'请关闭过期预览后重新发起任务':waiting?'先确认或暂不提交工单，再继续会话':'Enter 发送 · Shift + Enter 换行';
+  $('message').disabled=state.historyLoading||state.historyArchived;
   $('message').placeholder=waiting?'请先处理上方工单，再继续会话…':'描述问题，或交代一个任务…';
   $('pipeline-badge').textContent=[$('semantic').checked?'语义':'',$('keyword').checked?'BM25':''].filter(Boolean).join(' ＋ ')+(dual?' → RRF':'')+($('rerank').checked?' → 重排':'')+' → 证据';
   $('parameter-scope').textContent='问答检索与生成参数 · 任务沿用执行预算';
@@ -81,7 +87,7 @@ function updateControls() {
   $('batch').disabled=!state.config||state.busy&&!state.batchRunning||!!err; $('batch').textContent=state.batchRunning?'停止后续题目':'运行当前测试集';
   const model=state.config?.generation;
   $('model-badge').textContent=model?.model_id||'尚未连接模型';
-  $('new-conversation').disabled=state.busy||state.importBusy||['running','waiting_approval','interrupted'].includes(state.agent?.status);
+  $('new-conversation').disabled=state.historyLoading||state.busy||state.importBusy||['running','waiting_approval','interrupted'].includes(state.agent?.status);
   $('batch').disabled ||= state.importBusy||!state.dataset||!state.evaluationMode||!state.config?.generation.ready||['running','waiting_approval','interrupted'].includes(state.agent?.status);
   $('rerun').disabled ||= !state.config?.generation.ready||['running','waiting_approval','interrupted'].includes(state.agent?.status);
   const selected=state.runs.find(run=>run.id===state.current),freeSelected=selected&&!records.isEvaluation(selected);
@@ -92,11 +98,13 @@ function updateControls() {
   for(const id of ['preset','dataset-split','replace-dataset','welcome-import'])if($(id))$(id).disabled=state.busy||state.importBusy;
   $('question').disabled=state.busy||state.importBusy;
   $('identity').disabled=state.busy||state.importBusy;
-  $('model-settings').disabled=state.busy||state.importBusy;
+  $('model-settings').disabled=state.busy||state.importBusy||!auth.canManage;
   $('composer').hidden=state.evaluationMode;
   $('dataset-panel').hidden=!state.evaluationMode||!state.dataset;
   const latest=state.batches.at(-1);$('resume-batch').hidden=!latest||latest.status==='completed'||!state.datasetUpload||latest.dataset.fingerprint!==state.dataset?.fingerprint;$('resume-batch').disabled=state.busy||state.importBusy;$('clear-cache').disabled=state.busy||state.importBusy||!cacheScope;
-  renderPipeline();renderWorkspaceView();resizeComposer();
+  if(state.historyArchived)$('composer-note').textContent='此会话已归档，取消归档后可继续。';
+  if(state.historyLoading)$('composer-note').textContent='正在读取历史会话…';
+  conversationHistory?.sync();renderPipeline();renderWorkspaceView();resizeComposer();
 }
 function applyDefaults() {
   const c=state.config; if(!c)return; const strategy=c.retrieval.strategy;
@@ -119,8 +127,8 @@ function renderQuestions() {
 async function loadConfig(reset=true) {
   const epoch=state.epoch;
   try { const config=await api('/workbench/config'); if(epoch!==state.epoch)return;
-    state.config=config; $('connection').textContent='本地服务已连接'; $('connection').classList.add('ready'); renderQuestions(); if(reset)applyDefaults();updateControls(); showNotice(config.generation.ready?'':'点击输入框下方的模型名称，连接真实模型后开始会话。');
-    if(!state.agent){const active=await api('/workbench/tasks');if(epoch!==state.epoch)return;if(active.tasks.length){state.agent=active.tasks[0];state.conversation=state.agent.conversation_id;state.agentByIdentity.set(state.identity,state.agent);$('welcome')?.remove();renderAgent(state.agent);if(state.agent.status==='running')pollAgent(state.agent.run_id,state.identity,epoch);}}
+    state.config=config; $('connection').textContent='本地服务已连接'; $('connection').classList.add('ready'); renderQuestions(); if(reset)applyDefaults();updateControls(); showNotice(config.generation.ready?'':'请由平台管理员配置真实模型后开始会话。');
+
   } catch(error) { $('connection').textContent='服务连接失败'; $('connection').classList.remove('ready'); showNotice(error.message+' 请初始化知识库并检查服务。',true);updateControls(); }
 }
 function selectedId() { return null; }
@@ -133,6 +141,7 @@ function messageLabel(role){
 function message(role,text,run=null) {
   const n=el('article',`message ${role}`),label=messageLabel(role); n.append(label); const body=el('div','message-body');
   if(run?.response.claims?.length){const refs=run.response.citations;for(const claim of run.response.claims){const p=el('p','claim',claim.text);for(const cid of claim.citations){const i=refs.findIndex(c=>c.chunk_id===cid);if(i>=0)p.append(button(`[${i+1}]`,()=>openSource(refs[i]),'citation-button'));}body.append(p);}} else body.textContent=text;
+  if(role==='assistant'&&run)appendFollowUp(body,run.response);
   if(role==='assistant'&&run?.response.citations?.length){
     const layout=el('div','answer-layout'),sources=el('details','answer-sources'),summary=el('summary','','参考来源');
     sources.open=globalThis.matchMedia?.('(min-width:801px)')?.matches??true;
@@ -153,6 +162,7 @@ function message(role,text,run=null) {
   $('chat-log').append(n);scrollFollower.follow();return n;
 }
 async function runChat(messageText, {fresh=false,batch=false,questionId=null,unified=false,dataset=null,frozenControls=null,runtime=null,batchId=null,baseline=null,independent=false}={}) {
+  if(state.historyLoading||state.historyArchived&&!fresh&&!batch&&!questionId&&!dataset)throw new Error('请等待读取完成，或先取消会话归档。');
   const error=validateControls(); if(error)throw new Error(error);
   const epoch=state.epoch,identity=state.identity,c=frozenControls||controls(), qid=questionId??selectedId(messageText), conversation=fresh||qid?null:state.conversation;
   const request={message:messageText,conversation_id:conversation,...c,...(qid?{question_id:qid}:{}),...(dataset?{dataset_id:dataset.id,runtime_fingerprint:runtime}:{})};
@@ -180,7 +190,7 @@ async function runChat(messageText, {fresh=false,batch=false,questionId=null,uni
     renderExperiments();
     if(error.code==='USER_STOP'){message('assistant','已停止接收本次回答。你可以修改草稿后重新发送。');return null;}
     if(!evaluationRun)message('error',error.message);showNotice(error.message,true);}throw error;
-  } finally { if(epoch===state.epoch){state.busy=batch;updateControls();} }
+  } finally { if(epoch===state.epoch){state.busy=batch;updateControls();if(!evaluationRun)conversationHistory?.changed(state.conversation);} }
 }
 async function streamRequest(path,body,identity,pending,epoch){
   const stream=createStreamControl(updateControls),controller=stream.controller,timer=setTimeout(()=>controller.abort(),180000);
@@ -195,12 +205,20 @@ async function streamRequest(path,body,identity,pending,epoch){
   try{
     const response=await fetch(path,{method:'POST',signal:controller.signal,headers:{'X-Local-User-Id':identity,'Content-Type':'application/json'},body:JSON.stringify(body)});
     if(!response.ok){const data=await response.json();const error=new Error(data.error?.message||'请求失败');error.code=data.error?.code;throw error;}
-    return await readEventStream(response,(kind,data)=>{
+    const result=await readEventStream(response,(kind,data)=>{
       if(epoch!==state.epoch)return;
       if(kind==='phase'){status.textContent=phases[data.stage]||'正在处理…';$('generation-status').textContent=status.textContent;stream.phase(data.stage);scrollFollower.follow();}
-      if(kind==='reset'){preview.textContent='';scrollFollower.follow();}
-      if(kind==='preview'){preview.textContent=data.text;scrollFollower.follow();}
+      // Draft/reset events never expose unvalidated model text.
     });
+    clearTimeout(timer);
+    if(epoch!==state.epoch)return result;
+    stream.phase('displaying');
+    const text=validatedAnswerText(result);
+    if(text){
+      status.textContent='校验已通过，正在显示回答…';$('generation-status').textContent=status.textContent;
+      await animateValidatedText(text,value=>{preview.textContent=value;scrollFollower.follow();},{isCurrent:()=>epoch===state.epoch});
+    }
+    return result;
   }catch(error){
     if(stream.stopped){const stopped=new Error('用户停止接收');stopped.code='USER_STOP';throw stopped;}
     if(error.name==='AbortError')throw new Error('流式响应超时，回答未完成，请重试。');
@@ -223,7 +241,7 @@ function crossText(value) {return value===true?'完整 · 1/1':value===false?'�
 function timingRow(name,value,total,sub=false) {const row=el('div',`timing-row${sub?' sub':''}`),track=el('div','track'),bar=el('div','bar');bar.style.width=`${Math.max(1,Math.min(100,value/Math.max(total,1)*100))}%`;track.append(bar);row.append(el('span','',timingNames[name]||name),track,el('span','value',ms(value)));return row;}
 function usageSummary(run) {const calls=run.response.context.model_usage||[];const full=calls.length>0&&calls.every(c=>Number.isInteger(c.usage?.prompt_tokens)&&Number.isInteger(c.usage?.completion_tokens));return full?{input:calls.reduce((s,c)=>s+c.usage.prompt_tokens,0),output:calls.reduce((s,c)=>s+c.usage.completion_tokens,0)}:null;}
 function renderMetrics(run) {
-  const answer=$('inspection-answer');answer.hidden=false;answer.replaceChildren(el('h3','',run.message),el('p','',run.response.answer));
+  const answer=$('inspection-answer');answer.hidden=false;answer.replaceChildren(el('h3','',run.message),el('p','',run.response.answer));appendFollowUp(answer,run.response);
   const box=$('metrics-panel');box.replaceChildren();$('run-number').textContent=`RUN ${String(run.number).padStart(2,'0')}`;
   if(!records.isEvaluation(run)){
     const history=run.response.context.history_snapshot,detail=el('details','turn-history');detail.append(el('summary','','本轮原始历史上下文'));
@@ -428,7 +446,7 @@ function openReview(id) {
   $('review-previous').disabled=index===0;$('review-next').disabled=index===queue.length-1;
   $('review-save-next').textContent=index<queue.length-1?'保存并评审下一条':'保存并结束';
   const ref=$('review-reference');ref.replaceChildren(el('p','field-help','RUN '+run.number+' · '+(run.request.question_id||'自由问题')),el('h3','',run.message));
-  const answer=el('section','review-answer');answer.append(el('h4','','本次实际回答'),el('p','',run.response.answer));ref.append(answer);
+  const answer=el('section','review-answer');answer.append(el('h4','','本次实际回答'),el('p','',run.response.answer));appendFollowUp(answer,run.response);ref.append(answer);
   const points=run.response.evaluation.reference_points;
   if(points?.length){const d=el('details');d.open=true;d.append(el('summary','','参考答案要点'));const list=el('ul');for(const point of points)list.append(el('li','',point));d.append(list);ref.append(d);}
   else ref.append(el('p','field-help','此问题没有预置标准答案，需要自行核对事实和引用。'));
@@ -488,7 +506,7 @@ async function runBatch(resuming=false) {
   const previous=resuming?state.batches.at(-1):null;
   if(resuming&&(!previous||!state.datasetUpload))return;
   state.importBusy=true;updateControls();
-  try{if(cacheScope&&cacheScope!==cache.scopeKey(state.identity,await api('/workbench/connections')))throw new Error('知识库连接已变化，请刷新页面加载对应记录。');if(state.datasetUpload)state.dataset=await api('/workbench/datasets',{method:'POST',body:JSON.stringify(state.datasetUpload)});}
+  try{if(cacheScope&&cacheScope!==cache.scopeKey(state.identity,await api('/workbench/datasets/runtime')))throw new Error('知识库连接已变化，请刷新页面加载对应记录。');if(state.datasetUpload)state.dataset=await api('/workbench/datasets',{method:'POST',body:JSON.stringify(state.datasetUpload)});}
   catch(e){showNotice(e.message,true);return;}finally{state.importBusy=false;updateControls();}
   const dataset=state.dataset, selectedSplit=previous?previous.split==='all'?'':previous.split:$('dataset-split').value;
   const questions=dataset.questions.filter(q=>!selectedSplit||q.split===selectedSplit), frozenControls=previous?previous.controls:structuredClone(controls());
@@ -516,7 +534,7 @@ async function runBatch(resuming=false) {
   }
 }
 function clearCancelledConversation(){
-  state.agent=null;state.agentByIdentity.delete(state.identity);state.conversation=null;state.sessionId=crypto.randomUUID();state.agentRequest=null;state.current=null;state.last=null;state.view='chat';state.evaluationMode=false;
+  conversationHistory?.startNew();state.historyArchived=false;state.agent=null;state.agentByIdentity.delete(state.identity);state.conversation=null;state.sessionId=crypto.randomUUID();state.agentRequest=null;state.current=null;state.last=null;state.view='chat';state.evaluationMode=false;
   $('message').value='';showWelcome();showNotice('');
   $('inspection-answer').hidden=true;$('inspection-answer').replaceChildren();$('metrics-panel').replaceChildren(el('div','empty-state','新会话尚无运行记录。'));$('run-number').textContent='—';renderEvidence(null);
   for(const id of ['source-dialog','inspector-dialog'])if($(id).open)$(id).close();
@@ -573,7 +591,7 @@ function renderAgent(agent) {
   {$('inspection-answer').hidden=true;const metrics=$('metrics-panel');metrics.replaceChildren();$('run-number').textContent='AGENT';const g=group('Agent 运行');g.append(line('状态',agent.outcome==='needs_clarification'?'需要补充信息':statusNames[agent.status]||agent.status),line('执行耗时',ms((agent.elapsed_seconds||0)*1000)),line('模型 tokens',agent.actual_model_tokens??'未知'),line('估算模型费用',agent.estimated_model_cost??'未知'),line('执行步骤',agent.steps),el('p','metric-caption','任务使用已配置模型与执行预算；耗时不包含人工审批等待。'));metrics.append(g);$('evidence-list').className='empty-state';$('evidence-list').textContent='Agent 工具结果与来源在任务轨迹中展示。';}for(const detail of box.querySelectorAll('details[data-detail-key]'))if(expanded.has(detail.dataset.detailKey))detail.open=true;updateControls();
 }
 async function pollAgent(id,identity,epoch) {
-  for(let i=0;i<180;i++){if(epoch!==state.epoch||state.agent?.run_id!==id)return;await new Promise(resolve=>setTimeout(resolve,500));try {const agent=await api(`/agent/${encodeURIComponent(id)}`,{},identity);if(epoch!==state.epoch||state.agent?.run_id!==id)return;state.agent=agent;state.agentByIdentity.set(identity,agent);renderAgent(agent);if(agent.status!=='running'){scrollFollower.follow();return;}}catch(error){showNotice(error.message+' 可手动刷新任务。',true);return;}}
+  for(let i=0;i<180;i++){if(epoch!==state.epoch||state.agent?.run_id!==id)return;await new Promise(resolve=>setTimeout(resolve,500));try {const agent=await api(`/agent/${encodeURIComponent(id)}`,{},identity);if(epoch!==state.epoch||state.agent?.run_id!==id)return;state.agent=agent;state.agentByIdentity.set(identity,agent);renderAgent(agent);if(agent.status!=='running'){conversationHistory?.changed(state.conversation);scrollFollower.follow();return;}}catch(error){showNotice(error.message+' 可手动刷新任务。',true);return;}}
   showNotice('任务仍在运行，可以刷新状态或取消任务。');
 }
 async function agentAction(suffix,body,expectedRunId=state.agent?.run_id) {
@@ -618,7 +636,7 @@ $('message').addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.s
 $('stop-generation').addEventListener('click',()=>activeStream?.stop());
 $('retry-message').addEventListener('click',async()=>{if(!retryDraft||$('retry-message').disabled)return;const draft=retryDraft;$('message').value=draft.text;$('intent').value=draft.intent;resizeComposer();updateControls();try{await runChat(draft.text,{unified:true,baseline:draft.baseline});}catch{}});
 $('composer').addEventListener('submit',async event=>{event.preventDefault();const text=$('message').value.trim();if(!text||state.busy)return;try{await runChat(text,{unified:true});}catch{}});
-$('new-conversation').addEventListener('click',()=>{state.conversation=null;state.sessionId=crypto.randomUUID();state.agent=null;state.agentRequest=null;state.evaluationMode=false;renderQuestions();updateControls();showWelcome();$('composer-note').textContent='新会话 · Enter 发送';$('message').focus();});
+$('new-conversation').addEventListener('click',()=>{if(state.busy||state.importBusy||state.historyLoading)return;conversationHistory?.startNew();state.historyArchived=false;state.conversation=null;state.sessionId=crypto.randomUUID();state.agent=null;state.agentRequest=null;state.evaluationMode=false;renderQuestions();updateControls();showWelcome();$('composer-note').textContent='新会话 · Enter 发送';$('message').focus();});
 $('chat-log').addEventListener('click',event=>{
   const b=event.target.closest('[data-prompt]');if(!b||!$('chat-log').contains(b)||state.busy)return;
   state.evaluationMode=false;state.view='chat';$('intent').value=b.dataset.mode||'auto';
@@ -686,7 +704,7 @@ function renderWorkspaceView() {
   $('evaluation-view').hidden=state.view!=='evaluation';
   for(const name of ['chat','evaluation']) {
     $(name+'-view-button').setAttribute('aria-pressed',String(state.view===name));
-    $(name+'-view-button').disabled=state.busy||state.importBusy;
+    $(name+'-view-button').disabled=state.busy||state.importBusy||state.historyLoading;
   }
 }
 $('toggle-parameters').addEventListener('click',showParameters);
@@ -718,7 +736,7 @@ $('dataset-form').addEventListener('submit',async event=>{
   finally{state.importBusy=false;$('confirm-dataset').disabled=false;updateControls();scheduleSave();}
 });
 $('example-dataset').addEventListener('click',async()=>{try{const data=await api('/workbench/datasets/example');const url=URL.createObjectURL(new Blob([data.content],{type:'application/x-ndjson'})),a=el('a');a.href=url;a.download=data.filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);$('dataset-import-status').textContent='已发起下载；示例为当前身份可用的开发集，包含内嵌章节坐标。';}catch(e){$('dataset-import-status').textContent=e.message;}});
-state.importBusy=true;updateControls();loadConfig().then(async()=>{await restoreCache();applyBusinessPrompt();});
+state.importBusy=true;updateControls();loadConfig().then(async()=>{await restoreCache();await initializeConversationHistory();applyBusinessPrompt();});
 
 
 function snapshotCache(){
@@ -732,33 +750,19 @@ function saveCache(){
   cacheQueue=cacheQueue.catch(()=>{}).then(()=>cache.write(key,value)).then(()=>{$('cache-status').textContent='已保存在本机';return true;}).catch(error=>{$('cache-status').textContent='本地保存失败，请导出 JSON';showNotice('本地保存失败：'+error.message,true);return false;});
   return cacheQueue;
 }
-function restoreConversationRuns(){
-  let chatRuns=state.runs.filter(r=>!r.batch_id&&r.view!=='evaluation');
-  const session=state.sessionId||chatRuns.at(-1)?.record_meta?.session_id||chatRuns.at(-1)?.response?.conversation_id;
-  if(session){state.sessionId=session;chatRuns=chatRuns.filter(run=>(run.record_meta?.session_id||run.response?.conversation_id)===session&&!run.request?.replay_context_id);state.conversation=state.conversation||chatRuns.at(-1)?.response?.conversation_id||null;}
-  const taskRuns=(state.agentRuns||[]).filter(run=>run.record_meta?.session_id===session);
-  const transcript=[...chatRuns,...taskRuns].sort((left,right)=>(left.created||'').localeCompare(right.created||''));
-  if(state.agent?.status==='cancelled'||transcript.at(-1)?.agent?.status==='cancelled'){clearCancelledConversation();return;}
-  if(chatRuns.length||taskRuns.length){
-    $('chat-log').replaceChildren();
-    for(const run of transcript){if(run.agent?.status==='cancelled')continue;message('user',run.message);if(run.agent)renderAgent(run.agent);else message('assistant',run.response.answer,run);}
-  }else if(!state.agent){
-    showWelcome();
-  }
-  if(state.agent)renderAgent(state.agent);
-}
 async function restoreCache(){
   cacheReady=false;
   try{
-    cacheScope=cache.scopeKey(state.identity,await api('/workbench/connections'));
+    cacheScope=cache.scopeKey(state.identity,await api('/workbench/datasets/runtime'));
     const stored=await cache.read(cacheScope);
     if(stored?.version===1){
       const data=cache.recover(stored);for(const k of ['dataset','datasetUpload','evaluationMode','batches','runs','failures','current','a','b','last'])state[k]=data[k];
-      state.agentRuns=data.agentRuns||[];state.sessionId=data.sessionId||null;state.conversation=state.conversation||data.conversation||null;state.recordView=data.recordView||(data.evaluationMode?'evaluation':'chat');
+      state.agentRuns=data.agentRuns||[];state.sessionId=data.sessionId||null;state.conversation=null;state.recordView=data.recordView||(data.evaluationMode?'evaluation':'chat');
       state.view=data.view||(state.evaluationMode?"evaluation":"chat");renderQuestions();
       if(state.dataset){const d=state.dataset;$('dataset-name').textContent=d.name;$('dataset-summary').textContent=`已恢复测试集 · ${d.count} 题 · ${d.source_labels} 题有来源标注`;$('dataset-split').replaceChildren(new Option('全部题目',''),...Object.entries(d.splits).map(([s,n])=>new Option(`${s} · ${n} 题`,s)));}
       for(const [id,value]of Object.entries(data.fields||{}))if(savedFields.includes(id)){if($(id).type==='checkbox')$(id).checked=value;else $(id).value=value;}
-      restoreConversationRuns();
+      // Persisted chat messages are restored from the authorized server history.
+      // IndexedDB remains the source for local evaluation records only.
       if(state.runs.length)selectRun(state.runs.some(r=>r.id===state.current)?state.current:state.runs.at(-1).id);
       const batch=state.batches.at(-1);if(batch&&batch.status!=='completed')$('dataset-progress').textContent='批次已中断。点击“继续中断批次”手动恢复；未返回结果的题目可能再次调用模型。';
       if(state.runs.length||state.batches.length)showNotice(`已恢复 ${state.runs.length} 条运行记录与评审，可在「评测与记录」中查看。`);
@@ -794,4 +798,57 @@ function applyBusinessPrompt(){
   if(!businessPrompts[businessTask])return;
   setWorkspaceView('chat');$('intent').value='auto';$('message').value=businessPrompts[businessTask];resizeComposer();$('message').focus();
   showNotice('已填入业务分析任务，点击发送后才会调用 Agent。');
+}
+
+
+function renderSavedMessage(item){
+  const payload=item.payload||{};
+  const article=message(item.role,item.role==='assistant'&&!item.redacted?(payload.answer??item.content):item.content);
+  if(item.role!=='assistant')return article;
+  const body=article.querySelector('.message-body');
+  if(!item.redacted){
+    if(payload.claims?.length){
+      body.replaceChildren();
+      for(const claim of payload.claims){
+        const paragraph=el('p','claim',claim.text);
+        for(const cid of claim.citations||[]){const i=(payload.citations||[]).findIndex(ref=>ref.chunk_id===cid);if(i>=0)paragraph.append(button(`[${i+1}]`,()=>openSource(payload.citations[i]),'citation-button'));}
+        body.append(paragraph);
+      }
+    }else if(payload.follow_up){body.textContent=payload.answer||'';}
+    appendFollowUp(body,payload);
+  }
+  const foot=el('div','message-footer');foot.append(el('span','',item.redacted?'原回答依据已失效或权限已变更':'历史记录 · '+(statusNames[payload.status]||'已保存')));
+  if(payload.agent_run_id)foot.append(el('span','',`任务 ${payload.agent_run_id}`));
+  article.append(foot);return article;
+}
+async function openSavedConversation(data,{older=false}={}){
+  if(older){
+    const fragment=document.createDocumentFragment();
+    for(const item of data.messages)fragment.append(renderSavedMessage(item));
+    $('chat-log').prepend(fragment);return;
+  }
+  state.conversation=data.conversation_id;state.sessionId=data.conversation_id;state.historyArchived=data.archived;
+  state.agent=null;state.agentRequest=null;state.current=null;state.last=null;state.view='chat';state.evaluationMode=false;
+  $('chat-log').replaceChildren();scrollFollower.reset();retryDraft=null;$('retry-message').hidden=true;$('generation-status').textContent='';
+  $('inspection-answer').hidden=true;$('metrics-panel').replaceChildren(el('p','field-help','历史消息已从服务端恢复。新的问答运行后可查看本次指标。'));renderEvidence(null);
+  const rendered=new Map();for(const item of data.messages)rendered.set(item.message_id,renderSavedMessage(item));
+  const last=data.messages.at(-1);
+  if(!data.archived&&last?.role==='assistant'&&!last.redacted&&last.payload?.agent_run_id&&['running','waiting_approval','interrupted'].includes(last.payload.status)){
+    try{
+      // GET only: do not call resume/launch/approval while restoring a conversation.
+      const agent=await api('/agent/'+encodeURIComponent(last.payload.agent_run_id));
+      if(['running','waiting_approval','interrupted'].includes(agent.status)){
+        state.agent=agent;state.agentByIdentity.set(state.identity,agent);rendered.get(last.message_id)?.remove();renderAgent(agent);
+        if(agent.status==='running')pollAgent(agent.run_id,state.identity,state.epoch);
+      }
+    }catch(error){showNotice('历史消息已恢复，任务状态暂时无法读取：'+error.message,true);}
+  }
+  renderQuestions();updateControls();scrollFollower.reset();scheduleSave();
+}
+async function initializeConversationHistory(){
+  conversationHistory=installConversationHistory({api,current:()=>state.conversation,isBusy:()=>state.busy||state.importBusy,
+    onOpen:openSavedConversation,onLock:value=>{state.historyLoading=value;updateControls();},
+    getDraft:()=>$('message').value,setDraft:value=>{$('message').value=value;resizeComposer();updateControls();},
+    onTitle:title=>{$('task-title').textContent=title;$('task-title').title=title;},notify:showNotice});
+  await conversationHistory.init();
 }

@@ -61,9 +61,17 @@ class AgentRepository(TicketWorkflowRepository):
                 CREATE TABLE IF NOT EXISTS ko_agent_business (
                 tenant_id TEXT NOT NULL, user_id TEXT NOT NULL, query TEXT NOT NULL, payload JSONB NOT NULL,
                 PRIMARY KEY(tenant_id,user_id,query));
+                ALTER TABLE ko_ticket_workflows ADD COLUMN IF NOT EXISTS assignee TEXT;
+                ALTER TABLE ko_ticket_workflows ADD COLUMN IF NOT EXISTS resolution TEXT;
+                ALTER TABLE ko_ticket_workflows ADD COLUMN IF NOT EXISTS updated_at DOUBLE PRECISION;
+                CREATE TABLE IF NOT EXISTS ko_ticket_notifications (
+                    notification_id BIGSERIAL PRIMARY KEY,ticket_id TEXT NOT NULL REFERENCES ko_agent_tickets,
+                    tenant_id TEXT NOT NULL,user_id TEXT NOT NULL,version INTEGER NOT NULL,
+                    message TEXT NOT NULL,created_at DOUBLE PRECISION NOT NULL,read_at DOUBLE PRECISION,
+                    UNIQUE(ticket_id,version,user_id));
                 CREATE OR REPLACE VIEW ko_ticket_business AS
                 SELECT t.tenant_id,t.user_id,t.ticket_id,t.arguments->>'title' AS title,
-                    COALESCE(w.status,'pending_triage')::text AS status, NULL::text AS assignee, NULL::text AS estimated_completion,
+                    COALESCE(w.status,'pending_triage')::text AS status, w.assignee::text AS assignee, NULL::text AS estimated_completion,
                     (a.result->>'created_at')::double precision AS created_at
                 FROM ko_agent_tickets t JOIN ko_agent_actions a USING(action_id)
                 JOIN ko_agent_runs r ON r.run_id=a.run_id
@@ -73,6 +81,9 @@ class AgentRepository(TicketWorkflowRepository):
                 SELECT t.ticket_id,%s,'pending_triage',COALESCE((a.result->>'created_at')::double precision,r.created_at)
                 FROM ko_agent_tickets t JOIN ko_agent_actions a USING(action_id) JOIN ko_agent_runs r ON r.run_id=a.run_id
                 ON CONFLICT DO NOTHING""", (Jsonb({"category":"uncertain","category_label":"待人工分诊","required_capabilities":[],"reason":"旧工单未记录业务分类，需要人工分诊。","policy_version":"legacy-untriaged","execution_allowed":False}),))
+
+            from app.db.agent_checkpoints import initialize_checkpoints
+            initialize_checkpoints(db)
 
     def seed_demo(self, identity):
         """Explicit setup only; never restore revoked permissions on app startup."""
@@ -178,7 +189,17 @@ class AgentRepository(TicketWorkflowRepository):
             state["checkpoint_at"] = time.time()
             self._save(db, state, release)
 
-    def propose(self, state, identity, token, call_id, arguments):
+    def release_lease(self, run_id, identity, token, elapsed_seconds):
+        """Release only this executor; never overwrite a cancellation or approval."""
+        with self.connection() as db:
+            row = self._row(db, run_id, identity, True)
+            if row["lease_token"] == token:
+                state = row["state"]
+                state["elapsed_seconds"] = max(state["elapsed_seconds"], elapsed_seconds)
+                state["checkpoint_at"] = time.time()
+                self._save(db, state, True)
+
+    def propose(self, state, identity, token, call_id, arguments, *, release=True):
         with self.connection() as db:
             row = self._row(db, state["run_id"], identity, True)
             if row["lease_token"] != token or row["lease_until"] <= time.time() or row["state"]["status"] != "running":
@@ -192,7 +213,7 @@ class AgentRepository(TicketWorkflowRepository):
                 (action_id, state["run_id"], digest, Jsonb(arguments), call_id, pending["expires_at"]))
             state.update(status="waiting_approval", phase="approval", pending=pending)
             event(state, "waiting_approval", **pending)
-            self._save(db, state, True)
+            self._save(db, state, release)
             return state
 
     def approve(self, run_id, identity, approval):
@@ -205,6 +226,10 @@ class AgentRepository(TicketWorkflowRepository):
                 raise AppError("APPROVAL_MISMATCH", "Approval does not bind the current action parameters", 409)
             if action["status"] in {"committed", "rejected"}:
                 return state
+            # Wait until LangGraph has durably stored its approval interrupt.
+            row = self._row(db, run_id, identity)
+            if row["lease_token"] and row["lease_until"] > time.time():
+                raise AppError("RUN_BUSY", "提案正在保存，请稍后重试确认。", 409)
             if state["status"] != "waiting_approval" or action["status"] != "pending":
                 raise AppError("INVALID_STATE", "Action cannot be approved", 409)
             if action["expires_at"] < time.time():
@@ -290,7 +315,7 @@ class AgentRepository(TicketWorkflowRepository):
                 "created_at": result.get("created_at") or committed.get("time"),
                 "user_id": row["user_id"], "approval_version": row["version"]}
         workflow = AgentRepository.workflow_view(row)
-        item.update(status=workflow["status"], workflow=workflow)
+        item.update(status=workflow["status"], workflow=workflow, assignee=workflow.get("assignee"),resolution=workflow.get("resolution"))
         if detail:
             prior_trace = []
             for trace in state.get("trace", []):

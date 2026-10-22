@@ -69,7 +69,7 @@ def test_actual_sampling_payload_and_usage_are_recorded():
         assert body["temperature"] == .7 and body["top_p"] == .4
         return httpx.Response(200, json={"model": "fixture-version", "usage": {"prompt_tokens": 25,
             "completion_tokens": 5, "total_tokens": 30}, "choices": [{"finish_reason": "stop",
-            "message": {"content": "{}"}}]})
+            "message": {"role": "assistant", "content": "{}"}}]})
     client = RecordingGeneration(CompatibleGenerationClient(httpx.MockTransport(handler)))
     settings = GenerationSettings(provider="compatible", model_id="fixture", api_key="secret", temperature=.7, top_p=.4)
     assert asyncio.run(client.generate([{"role": "system", "content": "JSON"}], settings)) == "{}"

@@ -1,0 +1,40 @@
+{
+  "date": "2026-10-18",
+  "scope": "document lifecycle first batch; local offline acceptance",
+  "python_full_regression": {
+    "passed": 405,
+    "external_model_calls": 0,
+    "log": "D:/leetcode/.test-artifacts/knowledgeops-lifecycle-regression.log"
+  },
+  "python_lifecycle_followup": {
+    "passed": 14,
+    "overlap_with_full_run": 13,
+    "external_model_calls": 0,
+    "junit": "D:/leetcode/.test-artifacts/knowledgeops-document-versions-junit.xml",
+    "scope": "8 lifecycle + 6 management regressions; final readiness and withdrawal controls"
+  },
+  "frontend_regression": {
+    "passed": 67,
+    "command": "node --test tests/unit/*.mjs"
+  },
+  "browser": {
+    "isolated_schema": true,
+    "fictional_policy": true,
+    "model_doubles": "tests only",
+    "verified": [
+      "v1 to v2 explicit publication",
+      "historical originals and diff",
+      "v1 content to v3 rollback",
+      "actual ACL matrix",
+      "employee current-only access",
+      "identity clears history",
+      "390px no horizontal overflow"
+    ],
+    "screenshot": "D:/leetcode/.test-artifacts/knowledgeops-versions-history.png"
+  },
+  "limitations": [
+    "no real-model semantic quality evaluation",
+    "no load or production authentication validation",
+    "index builds execute in request; persisted state and lease, no independent worker"
+  ]
+}

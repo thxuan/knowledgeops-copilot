@@ -1,3 +1,4 @@
+import {auth,authenticatedFetch as fetch} from './auth-session.js';
 import {node,timeLabel,ticketLink,ticketStatus} from './agent-view.js?v=20261017-ticket-policy';
 const $=id=>document.getElementById(id);
 let epoch=0;

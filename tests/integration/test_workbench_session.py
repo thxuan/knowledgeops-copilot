@@ -1,7 +1,6 @@
 """Unified conversation, real-only configuration and credential boundaries."""
 import json
 import time
-from dataclasses import replace
 import pytest
 from fastapi.testclient import TestClient
 from app.main import create_app
@@ -40,14 +39,14 @@ def session_app():
 def test_real_only_and_safe_model_configuration(session_app):
     app,client,_,_ = session_app
     assert client.get("/workbench/model").status_code == 401
-    view = client.get("/workbench/model",headers=HEADERS).json()
+    view = client.get("/workbench/model",headers={'X-Local-User-Id':'u_admin_001'}).json()
     assert view["key_present"] and "private-secret" not in json.dumps(view)
     assert client.post("/workbench/chat",headers=HEADERS,json={"message":"x","generation":{"model":"fake"}}).status_code == 422
     body = {"base_url":"https://other.example/v1","model_id":"new-model","input_price":1,"output_price":2}
-    assert client.put("/workbench/model",headers=HEADERS,json=body).status_code == 422
+    assert client.put("/workbench/model",headers={'X-Local-User-Id':'u_admin_001'},json=body).status_code == 422
     assert app.state.chat.settings.api_key == "private-secret"
     body["api_key"] = "new-private-secret"
-    response = client.put("/workbench/model",headers=HEADERS,json=body)
+    response = client.put("/workbench/model",headers={'X-Local-User-Id':'u_admin_001'},json=body)
     assert response.status_code == 200
     assert "new-private-secret" not in response.text
     assert app.state.chat.settings.api_key == "new-private-secret"
@@ -94,7 +93,7 @@ def test_active_task_blocks_model_change(session_app):
     app,client,_,_ = session_app
     from app.core.identity import LOCAL_IDENTITIES
     app.state.persistent_agent.repo.create(LOCAL_IDENTITIES[HEADERS["X-Local-User-Id"]],"task","pending-key","trace")
-    r=client.put("/workbench/model",headers=HEADERS,json={"base_url":"https://model.example/v1","model_id":"changed","input_price":1,"output_price":1})
+    r=client.put("/workbench/model",headers={'X-Local-User-Id':'u_admin_001'},json={"base_url":"https://model.example/v1","model_id":"changed","input_price":1,"output_price":1})
     assert r.status_code == 409
     assert app.state.chat.settings.model_id == "real-test"
 
@@ -102,7 +101,7 @@ def test_active_task_blocks_model_change(session_app):
 @pytest.mark.parametrize("url",["http://remote.example/v1","https://name:secret@example.com/v1","https://example.com/v1?key=secret"])
 def test_invalid_endpoint_is_rejected_without_mutation(session_app,url):
     app,client,_,_=session_app
-    r=client.put("/workbench/model",headers=HEADERS,json={"base_url":url,"model_id":"real-test","api_key":"test"})
+    r=client.put("/workbench/model",headers={'X-Local-User-Id':'u_admin_001'},json={"base_url":url,"model_id":"real-test","api_key":"test"})
     assert r.status_code == 422
     assert app.state.chat.settings.base_url == "https://model.example/v1"
 
@@ -115,9 +114,9 @@ def test_connection_test_uses_existing_adapter_without_saving(session_app,monkey
     def provider(request):
         seen.append(json.loads(request.content))
         assert request.headers["Authorization"] == "Bearer test-key"
-        return httpx.Response(200,json={"choices":[{"finish_reason":"stop","message":{"content":'{"ok":true}'}}]})
+        return httpx.Response(200,json={"choices":[{"finish_reason":"stop","message":{"role":"assistant","content":'{"ok":true}'}}]})
     monkeypatch.setattr("app.api.workbench_session.make_generation_client",lambda settings:CompatibleGenerationClient(httpx.MockTransport(provider)))
-    r=client.post("/workbench/model/test",headers=HEADERS,json={"base_url":"https://new.example/v1","model_id":"new-test","api_key":"test-key"})
+    r=client.post("/workbench/model/test",headers={'X-Local-User-Id':'u_admin_001'},json={"base_url":"https://new.example/v1","model_id":"new-test","api_key":"test-key"})
     assert r.status_code == 200 and r.json()["ok"]
     assert seen[0]["model"] == "new-test"
     assert app.state.chat.settings.model_id == "real-test"

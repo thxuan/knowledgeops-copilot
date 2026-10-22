@@ -12,7 +12,6 @@ from app.core.errors import AppError
 from app.core.identity import LOCAL_IDENTITIES, Identity, get_identity
 from app.evals.imported import get_dataset, evaluate_imported, runtime_fingerprint
 from app.evals.workbench import available_questions, evaluate_trace, selected_question, corpus_snapshot
-from app.generation.provider import GenerationSettings, make_generation_client
 from app.generation.service import ChatService
 from app.agent.ticket_policy import review_capabilities
 from app.retrieval.pipeline import RetrievalService
@@ -42,9 +41,9 @@ async def business_page():
 async def config(request: Request, identity: Identity = Depends(get_identity)):
     settings = request.app.state.settings
     gs, rs = settings.generation, settings.retrieval
-    return {"version": "1", "local_auth": True, "history_replay": True, "ticket_workflow": True,
+    return {"version": "1", "local_auth": settings.auth_mode=="demo", "history_replay": True, "ticket_workflow": True,
         "ticket_review_capabilities": sorted(review_capabilities(identity)),
-        "identities": [{"id": i.user_id, "audiences": sorted(i.audiences)} for i in LOCAL_IDENTITIES.values()],
+        "identities": [{"id": i.user_id, "audiences": sorted(i.audiences)} for i in (LOCAL_IDENTITIES.values() if settings.auth_mode=="demo" else [identity])],
         "generation": {"provider": gs.provider if gs.provider == "compatible" else "unconfigured", "model_id": gs.model_id if gs.provider == "compatible" else "",
             "temperature": gs.temperature, "top_p": gs.top_p, "output_limit": gs.output_limit,
             "input_limit": gs.input_limit, "coverage_review": gs.coverage_review,
@@ -136,7 +135,7 @@ async def workbench_chat(body: WorkbenchChatRequest, request: Request, identity:
             history = await asyncio.to_thread(repository.replay_context, context_id, body.message, identity)
         else:
             history = await asyncio.to_thread(repository.load, body.conversation_id, identity)
-            context_id, history = await asyncio.to_thread(repository.capture_context, history, body.message, identity)
+            context_id, history = await asyncio.to_thread(repository.capture_context, history, body.message, identity, 'evaluation' if dataset or body.question_id else 'chat')
         history_view = repository.context_view(context_id, history)
         snapshot = await asyncio.to_thread(corpus_snapshot, request.app.state.document_repository, identity)
         result = await scoped.run(chat_body, identity, include_trace=True,

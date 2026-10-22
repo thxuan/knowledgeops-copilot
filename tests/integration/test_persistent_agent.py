@@ -10,8 +10,8 @@ from pathlib import Path
 from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
-from app.agent.contracts import AgentSettings, ApprovalRequest
-from app.agent.provider import tool_message
+from app.agent.contracts import AgentSettings
+from tests.doubles import tool_message
 from app.agent.service import AgentService
 from app.core.config import Settings
 from app.core.errors import AppError

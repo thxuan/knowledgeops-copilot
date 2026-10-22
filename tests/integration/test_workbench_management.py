@@ -22,7 +22,7 @@ def test_library_preview_readiness_acl_and_secret_redaction(workbench_app):
     other = {'X-Local-User-Id': 'u_employee_001'}
     assert client.get('/workbench/knowledge', headers=other).json()['documents'] == []
     assert client.post(f'/workbench/knowledge/{doc_id}/preview', headers=other, json={}).status_code == 404
-    config = client.get('/workbench/connections', headers=HEADERS).json()
+    config = client.get('/workbench/connections', headers={'X-Local-User-Id':'u_admin_001'}).json()
     assert 'password' not in config['database'] and 'api_key' not in config['embedding']
     ready = client.get('/workbench/readiness?semantic=false', headers=HEADERS).json()
     assert ready['ready'] and ready['indexed_documents'] == 2
@@ -38,25 +38,25 @@ def test_connection_discovery_mismatch_switch_and_key_boundary(workbench_app):
     app, client, _ = workbench_app
     database = db_view(app.state.settings.database_url)
     database.pop('password_present')
-    result = client.post('/workbench/connections/database/test', headers=HEADERS, json=database)
+    result = client.post('/workbench/connections/database/test', headers={'X-Local-User-Id':'u_admin_001'}, json=database)
     assert result.status_code == 200, result.text
     assert len(result.json()['collections']) == 1
     old = app.state.settings
     body = {'database': database, 'embedding': {'base_url': 'https://embedding.example.org/v1',
             'model_id': 'real-embedding', 'api_key': 'test-secret', 'dimensions': 16, 'collection': old.embedding.collection}}
-    mismatch = client.put('/workbench/connections', headers=HEADERS, json=body)
+    mismatch = client.put('/workbench/connections', headers={'X-Local-User-Id':'u_admin_001'}, json=body)
     assert mismatch.status_code == 409, mismatch.text
     assert app.state.settings == old
     body['embedding']['collection'] = 'new-real-collection'
-    applied = client.put('/workbench/connections', headers=HEADERS, json=body)
+    applied = client.put('/workbench/connections', headers={'X-Local-User-Id':'u_admin_001'}, json=body)
     assert applied.status_code == 200, applied.text
     assert app.state.settings.embedding.provider == 'compatible'
     assert app.state.settings.agent.business_database_url is None
     assert app.state.chat.client is not None
     body['embedding']['base_url'] = 'https://other.example.org/v1'
     body['embedding']['api_key'] = None
-    assert client.put('/workbench/connections', headers=HEADERS, json=body).status_code == 422
-    config = client.get('/workbench/connections', headers=HEADERS)
+    assert client.put('/workbench/connections', headers={'X-Local-User-Id':'u_admin_001'}, json=body).status_code == 422
+    config = client.get('/workbench/connections', headers={'X-Local-User-Id':'u_admin_001'})
     assert 'test-secret' not in config.text
     assert not client.get('/workbench/readiness', headers=HEADERS).json()['ready']
 
@@ -107,10 +107,10 @@ def test_switch_schema_and_busy_guard(workbench_app):
                 'collection': app.state.settings.embedding.collection}}
         original = app.state.ingestion_repository
         app.state.management_active_requests = 1
-        assert client.put('/workbench/connections', headers=HEADERS, json=body).status_code == 409
+        assert client.put('/workbench/connections', headers={'X-Local-User-Id':'u_admin_001'}, json=body).status_code == 409
         assert app.state.ingestion_repository is original
         app.state.management_active_requests = 0
-        switched = client.put('/workbench/connections', headers=HEADERS, json=body)
+        switched = client.put('/workbench/connections', headers={'X-Local-User-Id':'u_admin_001'}, json=body)
         assert switched.status_code == 200, switched.text
         assert client.get('/workbench/knowledge', headers=HEADERS).json()['documents'] == []
         assert app.state.ingestion_worker.repository is app.state.ingestion_repository

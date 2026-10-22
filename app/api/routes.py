@@ -1,5 +1,6 @@
 import asyncio
 from typing import Annotated
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile, Response, Query
 from app.api.schemas import ChatRequest, ChatResponse, DocumentResponse, HealthResponse, TaskResponse
@@ -54,14 +55,47 @@ async def chat(body: ChatRequest, request: Request, identity: Identity = Depends
         lambda: request.app.state.chat.run(body, identity))
 
 
+class ConversationUpdate(BaseModel):
+    model_config = ConfigDict(extra='forbid',strict=True)
+    title: str | None = Field(default=None,min_length=1,max_length=120)
+    archived: bool | None = None
+
+    @model_validator(mode='after')
+    def valid_update(self):
+        if self.title is not None:
+            self.title=self.title.strip()
+            if not self.title:raise ValueError('Blank title')
+        if self.title is None and self.archived is None:raise ValueError('Empty update')
+        return self
+
+
+@router.get('/conversations')
+async def conversations(request:Request,response:Response,limit:int=Query(20,ge=1,le=100),
+                        cursor:str|None=Query(None,max_length=512),archived:bool=False,
+                        identity:Identity=Depends(get_identity)):
+    response.headers['Cache-Control']='no-store'
+    return await asyncio.to_thread(request.app.state.conversations.list,identity,limit,cursor,archived)
+
+
+@router.patch('/conversations/{conversation_id}')
+async def update_conversation(conversation_id:str,body:ConversationUpdate,request:Request,response:Response,
+                              identity:Identity=Depends(get_identity)):
+    response.headers['Cache-Control']='no-store'
+    return await asyncio.to_thread(request.app.state.conversations.update,conversation_id,identity,body.title,body.archived)
+
+
 @router.get("/conversations/{conversation_id}")
-async def conversation(conversation_id: str, request: Request, after: int = Query(default=0, ge=0),
-                       limit: int = Query(default=50, ge=1, le=100),
+async def conversation(conversation_id: str, request: Request, response:Response,
+                       after: int = Query(default=0, ge=0),limit: int = Query(default=50, ge=1, le=100),
+                       before:int|None=Query(None,ge=1),latest:bool=False,
                        identity: Identity = Depends(get_identity)):
+    response.headers['Cache-Control']='no-store'
+    # Authorize before looking up task status; reading never launches an Agent.
+    await asyncio.to_thread(request.app.state.conversations.read,conversation_id,identity,0,1)
+    if request.app.state.persistent_agent:
+        await asyncio.to_thread(request.app.state.conversations.sync_agent_turns,conversation_id,identity,False)
     return await asyncio.to_thread(request.app.state.conversations.read,
-                                   conversation_id, identity, after, limit)
-
-
+                                   conversation_id, identity, after, limit, before, latest)
 
 
 @router.post("/documents/{document_id}/chunks", response_model=ChunkSetResponse)

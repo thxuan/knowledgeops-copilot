@@ -1,10 +1,9 @@
 """Durable task APIs and resumable SSE; GET never creates another task."""
 import asyncio
-import json
 from fastapi import APIRouter, Depends, Query, Request, Response
 from fastapi.responses import StreamingResponse
 from app.agent.contracts import StartRequest, ApprovalRequest, ProposalRevision, dump
-from app.agent.contracts import TicketDecision
+from app.agent.contracts import TicketDecision,TicketActivity
 from app.core.errors import AppError
 from app.core.identity import Identity, get_identity
 
@@ -16,7 +15,7 @@ def service(request):
     return request.app.state.persistent_agent
 
 def public(state):
-    return {k: v for k, v in state.items() if k not in {"messages", "seen"}}
+    return {k: v for k, v in state.items() if k not in {"messages", "seen", "_graph_receipt", "_agent_model_receipt"}}
 
 @router.post("/agent", status_code=202)
 async def start(body: StartRequest, request: Request, identity: Identity = Depends(get_identity)):
@@ -118,3 +117,16 @@ async def events(run_id: str, request: Request, after: int = Query(0, ge=0), ide
             yield ": heartbeat\n\n"
             await asyncio.sleep(.2)
     return StreamingResponse(stream(), media_type="text/event-stream", headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"})
+
+
+@router.post('/tickets/{ticket_id}/activity')
+async def ticket_activity(ticket_id:str,body:TicketActivity,request:Request,identity:Identity=Depends(get_identity)):
+    return await asyncio.to_thread(service(request).repo.activity,ticket_id,identity,body)
+
+@router.get('/notifications')
+async def notifications(request:Request,identity:Identity=Depends(get_identity)):
+    return await asyncio.to_thread(service(request).repo.notifications,identity)
+
+@router.post('/notifications/{notification_id}/read')
+async def read_notification(notification_id:int,request:Request,identity:Identity=Depends(get_identity)):
+    return await asyncio.to_thread(service(request).repo.read_notification,notification_id,identity)

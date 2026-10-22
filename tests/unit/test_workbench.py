@@ -1,6 +1,5 @@
 """Controls must change actual retrieval and remain isolated between requests."""
 import asyncio
-from dataclasses import replace
 from types import SimpleNamespace
 import pytest
 from pydantic import ValidationError
@@ -13,7 +12,6 @@ from app.core.identity import LOCAL_IDENTITIES
 from app.evals.workbench import selected_question, fixture
 from app.generation.provider import GenerationSettings
 from app.retrieval.pipeline import RetrievalService, RetrievalSettings
-from app.retrieval.rerank import RerankSettings
 from tests.unit.test_day9_retrieval import VectorDouble
 
 IDENTITY = LOCAL_IDENTITIES['u_engineer_001']

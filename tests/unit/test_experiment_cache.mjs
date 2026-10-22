@@ -37,15 +37,18 @@ test('workbench boot restores interrupted cache without starting model requests'
  const calls=[];
  const config={generation:{ready:false,temperature:0,output_limit:2048,input_limit:32000,models:[],coverage_review:false},retrieval:{strategy:'vector',candidate_k:20,rrf_constant:60,rerank_available:false}};
  const connection={database:{host:'localhost',port:55432,database:'kb',schema_name:'test'},embedding:{collection:'c'}};
- const sandbox={console,records,structuredClone,AbortController,Event,URLSearchParams,location:{search:''},crypto:globalThis.crypto,setTimeout:()=>0,clearTimeout(){},sessionStorage:{getItem(){return null;}},
+ const sandbox={auth:{canManage:false},console,records,structuredClone,AbortController,Event,URLSearchParams,location:{search:''},crypto:globalThis.crypto,setTimeout:()=>0,clearTimeout(){},matchMedia:()=>({matches:false}),sessionStorage:{getItem(){return null;},setItem(){}},
   document:{getElementById:element,createElement:()=>element(),querySelector:()=>element(),querySelectorAll:()=>[],addEventListener(){}},window:{addEventListener(){}},
   createScrollFollower:()=>({follow(){},reset(){}}),
   Option:function(text,value){this.textContent=text;this.value=value;},cache:{scopeKey,recover,remainingQuestions,read:async()=>saved,write:async()=>{}},
-  fetch:async path=>{calls.push(path);return {ok:true,json:async()=>path==='/workbench/config'?config:path==='/workbench/tasks'?{tasks:[]}:connection};}};
+  fetch:async path=>{calls.push(path);return {ok:true,json:async()=>path==='/workbench/config'?config:path==='/workbench/tasks'?{tasks:[]}:path.startsWith('/conversations?')?{items:[],next_cursor:null,workspace_id:'test-workspace',user_id:'engineer'}:connection};}};
  const script=(await readFile(new URL('../../app/web/workbench.js',import.meta.url),'utf8')).replace(/^import [^\n]*\n/gm,'');
- vm.runInNewContext(script,sandbox);
+ const historySource=(await readFile(new URL('../../app/web/conversation-history.js',import.meta.url),'utf8')).replace('export function installConversationHistory','function installConversationHistory');
+ vm.runInNewContext(historySource+'\n'+script,sandbox);
  await new Promise(resolve=>setImmediate(resolve));
  assert.equal(element('dataset-name').textContent,'test.jsonl');
+ assert(calls.some(path=>path.startsWith('/conversations?')),'restore authorized history through the real component');
+ assert.equal(element('history-status').textContent,'仅显示本人会话 · 已保存到服务端');
  assert.equal(element('evaluation-view').hidden,false);
  assert.equal(element('chat-view').hidden,true);
  element('message').value='未发送的草稿';

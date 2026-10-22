@@ -50,6 +50,10 @@ class IngestionRepository:
                 CREATE INDEX IF NOT EXISTS jobs_schedule ON ingestion_jobs(status, lease_until);
             """)
 
+        from app.db.document_versions import DocumentVersions
+        DocumentVersions(self).initialize()
+        from app.db.index_jobs import IndexJobs
+        IndexJobs(self).initialize()
 
     @staticmethod
     def event(db, task_id: str) -> None:
@@ -69,8 +73,8 @@ class IngestionRepository:
             document_id, task_id = str(uuid4()), str(uuid4())
             cursor = db.execute("""
                 INSERT INTO documents(document_id, tenant_id, filename, size_bytes, file_hash,
-                    parser_version, source, version, uploaded_by, content, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    parser_version, source, version, uploaded_by, content, created_at, publication_state)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'draft')
                 ON CONFLICT(tenant_id, file_hash, parser_version) DO NOTHING
             """, (document_id, identity.tenant_id, filename, len(content), file_hash,
                   parser_version, source, version, identity.user_id, content, now))
@@ -110,9 +114,10 @@ class IngestionRepository:
                 SELECT j.*, d.filename, d.file_hash, d.source, d.version, d.parser_version,
                     d.title, length(d.text) AS text_length
                 FROM ingestion_jobs j JOIN documents d USING(document_id)
-                JOIN document_access a USING(document_id)
-                WHERE j.task_id = %s AND d.tenant_id = %s AND a.user_id = %s AND d.active=1
-            """, (task_id, identity.tenant_id, identity.user_id)).fetchone()
+                WHERE j.task_id = %s AND d.tenant_id = %s AND d.active=1 AND
+                    (d.uploaded_by=%s OR %s OR (d.publication_state='published' AND EXISTS
+                    (SELECT 1 FROM document_access a WHERE a.document_id=d.document_id AND a.user_id=%s)))
+            """, (task_id, identity.tenant_id, identity.user_id, 'manage_platform' in identity.platform_capabilities,identity.user_id)).fetchone()
             if row is None:
                 raise AppError("NOT_FOUND", "Task not found", 404)
             result = dict(row)
@@ -126,9 +131,9 @@ class IngestionRepository:
     def retry(self, task_id: str, identity: Identity, max_attempts: int) -> dict:
         with self.connection() as db:
             allowed = db.execute("""SELECT 1 FROM ingestion_jobs j
-                JOIN documents d USING(document_id) JOIN document_access a USING(document_id)
-                WHERE j.task_id=%s AND d.tenant_id=%s AND a.user_id=%s AND d.active=1
-                FOR SHARE OF d, a""", (task_id, identity.tenant_id, identity.user_id)).fetchone()
+                JOIN documents d USING(document_id)
+                WHERE j.task_id=%s AND d.tenant_id=%s AND (d.uploaded_by=%s OR %s) AND d.active=1
+                FOR SHARE OF d""", (task_id, identity.tenant_id, identity.user_id, 'manage_platform' in identity.platform_capabilities)).fetchone()
             if allowed is None:
                 raise AppError("NOT_FOUND", "Task not found", 404)
             cursor = db.execute("""

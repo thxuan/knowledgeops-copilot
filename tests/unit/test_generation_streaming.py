@@ -4,39 +4,22 @@ import json
 from types import SimpleNamespace
 import httpx
 import pytest
-from app.generation.streaming import claims_preview
+from tests.doubles import assessed_output
 from app.generation.provider import CompatibleGenerationClient, GenerationSettings
 from app.api.streaming import stream_response
 from app.core.errors import AppError
 from app.core.lifecycle import ChatAdmission
 
 
-def test_preview_only_exposes_claim_text_and_handles_split_escapes():
-    assert claims_preview('{"claims":[{"text":"正在生成') == "正在生成"
-    assert claims_preview('{"claims":[{"citations":["secret-id"],"text":"第一条"},'
-                          '{"text":"第二条\\n下一行\\u4f60\\u597d') == "第一条\n第二条\n下一行你好"
-    assert claims_preview('{"claims":[{"text":"a\\uD83D') == "a"
-    assert claims_preview('{"claims":[{"text":"a\\uD83D\\uDE00') == "a😀"
-    assert claims_preview('{"claims":[{"text":"撤回"}],"insufficient_context":true}') == ""
-    assert claims_preview('{"answer":"不要展示","reasoning":"不要展示"}') == ""
-    assert claims_preview('{"claims":[{"text":"quoted \\"word\\" \\\\ slash') == 'quoted "word" \\ slash'
-
-
-def test_preview_accepts_every_prefix_without_leaking_metadata():
-    wire = json.dumps({"insufficient_context": False, "claims": [
-        {"text": "中文😀\n第一条", "citations": ["reference-SECRET"]},
-        {"text": "第二条", "citations": ["reference-SECRET"]}]}, ensure_ascii=True)
-    for end in range(len(wire) + 1):
-        preview = claims_preview(wire[:end])
-        assert "SECRET" not in preview and "citations" not in preview
-    assert claims_preview(wire) == "中文😀\n第一条\n第二条"
-
-
 class Bytes(httpx.AsyncByteStream):
     def __init__(self, seen, finish="stop"):
         self.seen, self.finish = seen, finish
+        self.consumed = False
 
     async def __aiter__(self):
+        if self.consumed:
+            return
+        self.consumed = True
         yield ('data: '+json.dumps({"model": "fixture", "choices": [
             {"index": 0, "delta": {"content": '{"claims":[{"text":"中文'}, "finish_reason": None}]},
             ensure_ascii=False)+'\n\n').encode()
@@ -76,18 +59,18 @@ def request():
         state=SimpleNamespace(management_active_requests=0)))
 
 
-def test_transport_preview_precedes_final_result_and_failure_does_not_finalize():
+def test_transport_phase_precedes_final_result_and_failure_does_not_finalize():
     async def run(fail):
         req = request()
         async def operation():
-            await req.state.chat_events("preview", {"text": "draft"})
+            await req.state.chat_events("phase", {"stage": "generating"})
             if fail:
                 raise AppError("GENERATION_FAILED", "failed", 502)
             return {"answer": "validated"}
         response = stream_response(req, operation)
         frames = [frame async for frame in response.body_iterator]
         encoded = "".join(frames)
-        assert encoded.index("event: preview") < encoded.index("event: error" if fail else "event: result")
+        assert encoded.index("event: phase") < encoded.index("event: error" if fail else "event: result")
         assert ("event: result" not in encoded) if fail else ('"validated"' in encoded)
         assert req.app.state.management_active_requests == 0
     asyncio.run(run(False))
@@ -169,8 +152,7 @@ def test_streamed_chat_finalizes_only_validated_claims(coverage):
             # first valid draft is superseded by the coverage review.
             text = ("Draft" if n == 0 else "Final")
             citation = "bad-id" if n == 0 and not coverage else "E1"
-            raw = json.dumps({"insufficient_context": False, "claims": [
-                {"text": text, "citations": [citation]}]})
+            raw = assessed_output([{"text": text, "citations": [citation]}])
             await on_delta(raw)
             assert commits == []
             return GenerationOutput(raw, {"usage": {}})
@@ -186,6 +168,6 @@ def test_streamed_chat_finalizes_only_validated_claims(coverage):
         assert commits == ["Final"]
         assert [data["phase"] for kind, data in events if kind == "reset"] == (
             ["draft", "review"] if coverage else ["draft", "draft"])
-        assert [data["text"] for kind, data in events if kind == "preview"] == ["Draft", "Final"]
+        assert not any(kind == "preview" for kind, _ in events)
         assert len(calls) == 2
     asyncio.run(run())

@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field, field_validator
 from psycopg.conninfo import conninfo_to_dict, make_conninfo
-from app.core.identity import Identity, get_identity
+from app.core.identity import Identity, get_identity, require_platform
 from app.core.errors import AppError
 from app.core.embedding import make_embedding_client, validate_result
 from app.db.postgres import connection, database_identity
@@ -107,7 +107,7 @@ def rerank_candidate(app, body):
     return result
 
 @router.get('/workbench/connections')
-async def connections(request: Request, identity: Identity = Depends(get_identity)):
+async def connections(request: Request, identity: Identity = Depends(require_platform)):
     s = request.app.state.settings
     e, r = s.embedding, s.retrieval.rerank
     return {'database': db_view(s.database_url),
@@ -132,7 +132,7 @@ def inspect_database(url, schema):
         return {'ok': True, 'schemas': schemas, 'collections': collections, 'empty': not tables}
 
 @router.post('/workbench/connections/database/test')
-async def test_database(body: DatabaseConnection, request: Request, identity: Identity = Depends(get_identity)):
+async def test_database(body: DatabaseConnection, request: Request, identity: Identity = Depends(require_platform)):
     url = database_url(request.app, body)
     try:
         return await asyncio.to_thread(inspect_database, url, body.schema_name)
@@ -142,7 +142,7 @@ async def test_database(body: DatabaseConnection, request: Request, identity: Id
         raise AppError('DATABASE_CONNECTION_FAILED', '数据库连接失败，请检查地址、认证、网络及访问权限。', 502) from None
 
 @router.post('/workbench/connections/embedding/test')
-async def test_embedding(body: EmbeddingConnection, request: Request, identity: Identity = Depends(get_identity)):
+async def test_embedding(body: EmbeddingConnection, request: Request, identity: Identity = Depends(require_platform)):
     e = embedding_candidate(request.app, body)
     try:
         result = await make_embedding_client(e).embed(['知识库连接测试'])
@@ -152,7 +152,7 @@ async def test_embedding(body: EmbeddingConnection, request: Request, identity: 
     return {'ok': True, 'dimensions': e.dimensions}
 
 @router.post('/workbench/connections/rerank/test')
-async def test_rerank(body: ProviderConnection, request: Request, identity: Identity = Depends(get_identity)):
+async def test_rerank(body: ProviderConnection, request: Request, identity: Identity = Depends(require_platform)):
     r = rerank_candidate(request.app, body)
     try:
         await make_rerank_client(r).rerank('如何申请权限', ['提交权限申请。', '天气晴朗。'])
@@ -161,7 +161,7 @@ async def test_rerank(body: ProviderConnection, request: Request, identity: Iden
     return {'ok': True}
 
 @router.put('/workbench/connections')
-async def apply_connections(body: Connections, request: Request, identity: Identity = Depends(get_identity)):
+async def apply_connections(body: Connections, request: Request, identity: Identity = Depends(require_platform)):
     from app.main import create_app
     from app.api.workbench_session import unfinished
     app = request.app
@@ -185,7 +185,7 @@ async def apply_connections(body: Connections, request: Request, identity: Ident
         if business_url:
             business_url = (make_conninfo(business_url, options=f'-c search_path={body.database.schema_name},public')
                             if database_identity(business_url) == database_identity(url) else None)
-        settings = replace(s, database_url=url, vector_database_url=url, embedding=e, retrieval=rs,
+        settings = replace(s, database_url=url, vector_database_url=url, auth_database_url=app.state.accounts.database_url, embedding=e, retrieval=rs,
                            agent=replace(s.agent, database_url=url, business_database_url=business_url))
         candidate = create_app(settings, generation_client=app.state.chat.client)
         for name in ['ingestion_repository', 'chunk_repository', 'conversations', 'vector_repository']:
@@ -200,16 +200,24 @@ async def apply_connections(body: Connections, request: Request, identity: Ident
                 repo.settings = pinned
             if await asyncio.to_thread(unfinished, candidate):
                 raise AppError('ACTIVE_TASK', '目标数据库存在未结束的真实 Agent 任务，请先恢复并处理原任务。', 409)
+        if app.state.index_worker.active or await asyncio.to_thread(app.state.index_jobs.unfinished):
+            raise AppError('ACTIVE_INDEX_JOBS','请先等待索引任务完成或取消后再切换连接。',409)
+        app.state.index_stop.set()
+        if app.state.index_task:
+            app.state.index_task.cancel()
+            await asyncio.gather(app.state.index_task,return_exceptions=True)
         app.state.ingestion_stop.set()
         if app.state.ingestion_task:
             await app.state.ingestion_task
         if app.state.persistent_agent:
             await app.state.persistent_agent.shutdown()
         for name in ['settings', 'ingestion_repository', 'chunk_repository', 'conversations', 'vector_repository',
-                     'vector_service', 'retrieval_service', 'document_repository', 'documents', 'ingestion_worker', 'chat', 'persistent_agent']:
+                     'index_jobs', 'vector_service', 'retrieval_service', 'document_repository', 'documents', 'ingestion_worker', 'chat', 'persistent_agent']:
             setattr(app.state, name, getattr(candidate.state, name))
         app.state.ingestion_stop = asyncio.Event()
         app.state.ingestion_task = (asyncio.create_task(app.state.ingestion_worker.run(app.state.ingestion_stop)) if settings.ingestion_worker_enabled else None)
+        app.state.index_stop=asyncio.Event()
+        app.state.index_task=asyncio.create_task(app.state.index_worker.run(app.state.index_stop)) if settings.index_worker_enabled else None
         return {'ok': True, 'message': '连接已应用。请新建会话并重新开始评测。'}
     except AppError:
         raise
@@ -219,17 +227,23 @@ async def apply_connections(body: Connections, request: Request, identity: Ident
         app.state.management_changing = False
 
 def document_rows(app, identity):
+    params={'user':identity.user_id,'tenant':identity.tenant_id,
+        'admin':'manage_platform' in identity.platform_capabilities,'collection':app.state.settings.embedding.collection}
     with app.state.ingestion_repository.connection() as db:
-        return [dict(row) for row in db.execute('''SELECT d.document_id,d.filename,d.title,d.source,d.version,
-            d.uploaded_by,j.status,j.task_id,j.error_code,h.chunk_set_id,
+        return [dict(row) for row in db.execute("""SELECT d.document_id,d.filename,d.title,d.source,d.version,
+            d.uploaded_by,d.revision,d.withdrawn,d.publication_state,
+            ((d.uploaded_by=%(user)s OR %(admin)s) OR (d.withdrawn=0 AND d.publication_state='published' AND a.user_id IS NOT NULL)) AS can_read,
+            j.status,j.task_id,j.error_code,h.chunk_set_id,
             (SELECT count(*) FROM chunks c WHERE c.chunk_set_id=h.chunk_set_id) AS chunks,
-            COALESCE(v.chunk_count,0) AS indexed_chunks,(d.uploaded_by=%s) AS owned,
-            CASE WHEN d.uploaded_by=%s THEN ARRAY(SELECT user_id FROM document_access da WHERE da.document_id=d.document_id) ELSE ARRAY[]::text[] END AS user_ids
-            FROM documents d JOIN document_access a USING(document_id) JOIN ingestion_jobs j USING(document_id)
-            LEFT JOIN document_chunk_heads h USING(document_id)
-            LEFT JOIN ko_vector_heads v ON v.document_id=d.document_id AND v.chunk_set_id=h.chunk_set_id AND v.collection=%s
-            WHERE d.active=1 AND d.tenant_id=%s AND a.user_id=%s ORDER BY d.created_at DESC''',
-            (identity.user_id, identity.user_id, app.state.settings.embedding.collection, identity.tenant_id, identity.user_id))]
+            COALESCE(v.chunk_count,0) AS indexed_chunks,(d.uploaded_by=%(user)s) AS owned,
+            (d.uploaded_by=%(user)s OR %(admin)s) AS can_manage,
+            CASE WHEN d.uploaded_by=%(user)s OR %(admin)s THEN ARRAY(SELECT user_id FROM document_access da WHERE da.document_id=d.document_id) ELSE ARRAY[]::text[] END AS user_ids
+            FROM documents d LEFT JOIN document_access a ON a.document_id=d.document_id AND a.user_id=%(user)s
+            JOIN ingestion_jobs j ON j.document_id=d.document_id
+            LEFT JOIN document_chunk_heads h ON h.document_id=d.document_id
+            LEFT JOIN ko_vector_heads v ON v.document_id=d.document_id AND v.chunk_set_id=h.chunk_set_id AND v.collection=%(collection)s
+            WHERE d.active=1 AND d.tenant_id=%(tenant)s AND (d.uploaded_by=%(user)s OR %(admin)s OR
+                (a.user_id IS NOT NULL AND d.withdrawn=0 AND d.publication_state='published')) ORDER BY d.created_at DESC""",params)]
 
 @router.get('/workbench/knowledge')
 async def knowledge(request: Request, identity: Identity = Depends(get_identity)):
@@ -240,7 +254,7 @@ async def knowledge(request: Request, identity: Identity = Depends(get_identity)
             'embedding_ready': request.app.state.settings.embedding.provider == 'compatible'}
 
 def readiness(app, identity, semantic=True):
-    rows = document_rows(app, identity)
+    rows = [row for row in document_rows(app, identity) if row['can_read']]
     indexed = sum(r['indexed_chunks'] > 0 for r in rows)
     reasons = []
     if app.state.chat.settings.provider != 'compatible':
@@ -277,6 +291,11 @@ async def build(document_id: str, body: KnowledgeBuildRequest, request: Request,
     app = request.app
     if app.state.settings.embedding.provider != 'compatible':
         raise AppError('EMBEDDING_NOT_CONFIGURED', '请先配置真实 Embedding，再构建索引。', 422)
+    with app.state.ingestion_repository.connection() as db:
+        doc = app.state.document_repository._owner(db, document_id, identity)
+    if doc['publication_state'] != 'published':
+        job = await asyncio.to_thread(app.state.index_jobs.enqueue,document_id,None,identity,body.model_dump(exclude={'force'}),app.state.settings.embedding,body.force)
+        return {**job,'count':0,'reused':False,'approval_required':True}
     await asyncio.to_thread(app.state.document_repository.check_owner, document_id, identity)
     started, run_id = time.perf_counter(), str(uuid4())
     if not body.force:

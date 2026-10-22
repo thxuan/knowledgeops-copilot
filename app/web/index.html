@@ -7,16 +7,16 @@
   <link rel="icon" type="image/svg+xml" href="/workbench/assets/favicon.svg">
   <link rel="stylesheet" href="/workbench/assets/workbench.css">
   <link rel="stylesheet" href="/workbench/assets/tickets.css?v=20261017-ticket-policy">
-  <link rel="stylesheet" href="/workbench/assets/conversation.css?v=20261017-conversation-records">
+  <link rel="stylesheet" href="/workbench/assets/conversation.css?v=20261020-history">
   <link rel="stylesheet" href="/workbench/assets/app-header.css">
   <link rel="stylesheet" href="/workbench/assets/ui-theme.css?v=20261017-glass">
-<script type="module" src="/workbench/assets/workbench.js?v=20261017-cancel-clear"></script>
+<script type="module" src="/workbench/assets/workbench.js?v=20261020-validated-display"></script>
 </head>
 <body class="workbench-page">
 <a class="skip-link" href="#message">跳到提问</a>
 <header class="topbar app-header">
   <a class="brand" href="/" aria-label="KnowledgeOps 工作台首页"><span>KnowledgeOps</span></a>
-  <nav class="workspace-nav" aria-label="工作区"><a href="/" aria-current="page">会话</a><a href="/knowledge">知识库</a><a href="/workbench/tickets">我的工单</a><a href="/workbench/business">业务状态</a><a href="/settings">连接设置</a></nav>
+  <nav class="workspace-nav" aria-label="工作区"><a href="/" aria-current="page">会话</a><a href="/knowledge">知识库</a><a href="/workbench/tickets">工单</a><a href="/workbench/business">业务状态</a><a href="/workbench/index-jobs">任务中心</a><a href="/settings" hidden>连接设置</a></nav>
   <div class="top-actions"><div class="identity-group header-identity"><label for="identity">当前身份</label><select id="identity" aria-label="当前身份"><option value="u_engineer_001">工程师</option><option value="u_employee_001">普通员工</option><option value="u_support_001">IT 支持</option></select></div></div>
 </header>
 <main>
@@ -24,9 +24,17 @@
   <div class="view-toolbar"><div class="view-switch" role="group" aria-label="工作视图"><button id="chat-view-button" aria-pressed="true" aria-controls="chat-view">会话</button><button id="evaluation-view-button" aria-pressed="false" aria-controls="evaluation-view">评测与记录</button></div><div class="workspace-tools"><span id="connection" class="connection">连接中</span><details class="debug-menu"><summary>调试工具</summary><div class="debug-actions"><button id="toggle-parameters" class="text-button" aria-haspopup="dialog" aria-controls="parameters-dialog" aria-label="运行参数">运行参数</button><button id="open-inspector" class="text-button" aria-haspopup="dialog" aria-controls="inspector-dialog" aria-label="运行详情">运行详情</button><a href="/settings#generation-section">模型连接设置</a><a href="/docs" target="_blank" rel="noopener">API 文档 ↗</a></div></details></div></div>
   <div id="notice" class="notice" role="status" hidden><span id="notice-text"></span><button id="dismiss-notice" type="button" aria-label="关闭提示">×</button></div>
   <div class="workspace" id="chat-view">
+    <button id="history-backdrop" class="history-backdrop" type="button" aria-label="收起历史会话"></button>
+    <aside id="conversation-history" class="conversation-history panel" aria-labelledby="history-title">
+      <div class="history-heading"><h2 id="history-title">历史会话</h2><button id="history-close" type="button" class="icon-button" aria-label="收起历史会话">×</button></div>
+      <button id="history-new" type="button" class="secondary-button">＋ 新会话</button>
+      <div class="history-filters" role="group" aria-label="会话范围"><button id="history-active" type="button" aria-pressed="true">最近会话</button><button id="history-archived" type="button" aria-pressed="false">已归档</button></div>
+      <div class="history-list-scroll"><div id="history-items"></div><button id="history-more" class="text-button" type="button" hidden>加载更多会话</button></div>
+      <div class="history-footer"><small id="history-status" role="status">读取历史会话中…</small><button id="history-refresh" type="button" class="text-button">刷新</button></div>
+    </aside>
 
     <section class="conversation panel" aria-labelledby="task-title">
-      <div class="conversation-heading"><div class="conversation-title"><span class="support-mark" aria-hidden="true">K</span><div><h2 id="task-title">技术支持助手</h2><span class="conversation-subtitle">有依据的解答，可确认的操作</span></div></div><button id="new-conversation" class="secondary-button">＋ 新会话</button></div>
+      <div class="conversation-heading"><button id="toggle-history" type="button" class="secondary-button" aria-controls="conversation-history" aria-expanded="false">历史会话</button><div class="conversation-title"><span class="support-mark" aria-hidden="true">K</span><div><h2 id="task-title">技术支持助手</h2><span class="conversation-subtitle">有依据的解答，可确认的操作</span></div></div><button id="new-conversation" class="secondary-button">＋ 新会话</button></div>
       <div class="transcript-area"><div id="chat-log" class="chat-log" role="log" aria-label="会话记录" aria-live="polite" tabindex="0">
 <div id="welcome" class="welcome support-welcome">
   <div class="welcome-heading"><span class="welcome-symbol" aria-hidden="true">K</span><div><span class="welcome-kicker">你的技术支持工作台</span><h3>今天需要解决什么问题？</h3><p>从知识库找到依据，把下一步交给助手。</p></div></div>
@@ -59,6 +67,7 @@
 </div><section class="experiments panel" aria-labelledby="experiments-title"><div class="experiment-heading"><div><h2 id="experiments-title">运行记录 <span id="experiment-count" class="count">0</span></h2></div><div class="actions"><button id="rerun" class="secondary-button" disabled>用当前参数重跑</button><button id="compare" class="secondary-button" disabled>对比两次运行</button><button id="batch" class="secondary-button" hidden disabled>运行当前测试集</button><button id="resume-batch" class="secondary-button" hidden>继续中断批次</button><button id="clear-cache" class="text-button">清空本地记录</button><span id="cache-status" class="field-help" role="status"></span><button id="export" class="text-button" disabled>导出 JSON ↓</button></div></div><p id="experiment-scope" class="field-help">记录自动保存在本机浏览器，按身份、数据库与集合隔离。对比使用相同题目、身份与无历史条件；质量评测依据导入测试集的有效标注。</p><div id="batch-results" class="batch-results"></div><div class="table-wrap"><table><caption class="sr-only">当前身份的实验记录</caption><thead><tr><th>运行 / 题目</th><th>检索配置</th><th>证据 / 文档</th><th>来源召回</th><th>跨文档来源完整</th><th>总耗时</th><th>人工评审</th></tr></thead><tbody id="experiment-rows"><tr><td colspan="7" class="table-empty">每次运行都保存实际参数与结果，便于复盘。</td></tr></tbody></table></div></section>
   </section>
 </main>
+<dialog id="history-edit-dialog" aria-labelledby="history-edit-heading"><form id="history-edit-form"><div class="dialog-heading"><h2 id="history-edit-heading">管理会话</h2><button id="history-edit-close" type="button" class="icon-button" aria-label="关闭管理会话">×</button></div><label class="field" for="history-edit-title">会话名称<input id="history-edit-title" maxlength="120" required></label><p class="field-help">归档会隐藏最近列表中的会话，内容保留，可在“已归档”中恢复。</p><p id="history-edit-error" class="error-text" role="alert"></p><div class="actions"><button id="history-archive" type="button" class="secondary-button">归档会话</button><button id="history-edit-save" type="submit" class="primary-button">保存名称</button></div></form></dialog>
 <dialog id="parameters-dialog" class="side-dialog" aria-labelledby="params-title">    <aside id="parameters-panel" class="parameters panel" aria-labelledby="params-title">
       <div class="panel-heading"><div><h2 id="params-title">运行参数</h2></div><button id="reset-config" class="icon-button" title="恢复服务端默认参数" aria-label="恢复默认参数">↺</button><button data-close="parameters-dialog" class="icon-button" aria-label="关闭运行参数">×</button></div>
       <p id="parameter-scope" class="scope-note">问答检索与生成参数</p>

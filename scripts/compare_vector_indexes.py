@@ -14,7 +14,6 @@ from app.core.config import Settings
 from app.core.embedding import make_embedding_client
 from app.core.identity import LOCAL_IDENTITIES
 from app.db.ingestion import IngestionRepository
-from app.db.snapshots import database_label
 from app.db.chunks import ChunkRepository
 from app.db.vectors import VectorRepository
 from app.retrieval.service import VectorService

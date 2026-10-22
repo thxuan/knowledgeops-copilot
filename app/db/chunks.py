@@ -36,18 +36,30 @@ class ChunkRepository:
     def _document(db, document_id: str, identity: Identity, lock=False):
         row = db.execute("""
             SELECT d.*, j.status FROM documents d JOIN ingestion_jobs j USING(document_id)
-            JOIN document_access a USING(document_id)
-            WHERE d.document_id = %s AND d.tenant_id = %s AND a.user_id = %s AND d.active=1
-        """ + (" FOR UPDATE OF d FOR SHARE OF a" if lock else ""), (document_id, identity.tenant_id, identity.user_id)).fetchone()
+            WHERE d.document_id = %s AND d.tenant_id = %s AND d.active=1
+            AND (d.uploaded_by=%s OR %s OR (d.publication_state='published' AND EXISTS
+                (SELECT 1 FROM document_access a WHERE a.document_id=d.document_id AND a.user_id=%s)))
+        """ + (" FOR UPDATE OF d" if lock else ""), (document_id, identity.tenant_id, identity.user_id,
+            'manage_platform' in identity.platform_capabilities, identity.user_id)).fetchone()
         if row is None:
+            raise AppError("NOT_FOUND", "Document not found", 404)
+        if row["withdrawn"]:
             raise AppError("NOT_FOUND", "Document not found", 404)
         if row["status"] != "succeeded":
             raise AppError("DOCUMENT_NOT_READY", "Parsing must succeed before chunking", 409)
         return dict(row)
 
+    def require_published(self, document_id, identity):
+        with self.ingestion.connection() as db:
+            row=self._document(db,document_id,identity)
+            if row['publication_state'] != 'published':
+                raise AppError('REVIEW_REQUIRED','请构建草稿索引并提交发布审批。',409)
+
     def build(self, document_id: str, identity: Identity, config: ChunkConfig, *, publish=True) -> dict:
         with self.ingestion.connection() as db:
             document = self._document(db, document_id, identity)
+        if publish and document['publication_state'] != 'published':
+            raise AppError('REVIEW_REQUIRED', '新文档请构建草稿索引并提交发布审批。', 409)
         chunks = chunk_document(
             document_id, document["text"], title=document["title"], source=document["source"],
             version=document["version"], parser_version=document["parser_version"], config=config,

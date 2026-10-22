@@ -1,6 +1,5 @@
 """Multi-query authorization, planner degradation and evidence selection regressions."""
 import asyncio
-from dataclasses import replace
 import json
 import pytest
 from app.core.errors import AppError

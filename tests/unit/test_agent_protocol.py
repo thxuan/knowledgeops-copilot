@@ -3,7 +3,7 @@ import json
 from dataclasses import replace
 import httpx
 import pytest
-from app.agent.contracts import AgentSettings, SPECS, CalculateArgs, redact
+from app.agent.contracts import AgentSettings, SPECS, redact
 from app.agent.provider import CompatibleAgentModel, Retryable
 from app.core.errors import AppError
 from app.core.identity import Identity
@@ -17,7 +17,13 @@ def test_wire_preserves_assistant_call_and_corresponding_result():
               {'role':'tool','tool_call_id':'call-1','content':'5'}]
     def handler(request):
         data=json.loads(request.content)
-        assert data['messages']==messages
+        sent=data['messages']
+        expected=json.loads(json.dumps(messages))
+        for history in (sent,expected):
+            for message in history:
+                for call in message.get('tool_calls',[]):
+                    call['function']['arguments']=json.loads(call['function']['arguments'])
+        assert sent==expected
         assert data['tools']==SPECS
         return httpx.Response(200,json={'model':'test','choices':[{'finish_reason':'stop','message':{'role':'assistant','content':'{"status":"completed","answer":"5"}'}}],
                                       'usage':{'prompt_tokens':100,'completion_tokens':10}})

@@ -81,8 +81,12 @@ def create_app(settings: Settings | None = None,
         CompatibleAgentModel(settings.agent) if settings.agent.provider == "compatible" else UnconfiguredAgentModel()),
         settings.agent, retrieval_service) if agent_repository else None)
 
+    from app.db.accounts import AccountRepository
+    accounts = AccountRepository(settings.auth_database_url or settings.database_url)
+
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        await asyncio.to_thread(accounts.initialize)
         await asyncio.to_thread(repository.initialize)
         await asyncio.to_thread(chunk_repository.initialize)
         await asyncio.to_thread(conversations.initialize)
@@ -94,9 +98,15 @@ def create_app(settings: Settings | None = None,
         task = asyncio.create_task(worker.run(stop)) if settings.ingestion_worker_enabled else None
         app.state.ingestion_stop = stop
         app.state.ingestion_task = task
+        app.state.index_stop = asyncio.Event()
+        app.state.index_task = asyncio.create_task(app.state.index_worker.run(app.state.index_stop)) if settings.index_worker_enabled else None
         try:
             yield
         finally:
+            app.state.index_stop.set()
+            if app.state.index_task:
+                app.state.index_task.cancel()
+                await asyncio.gather(app.state.index_task,return_exceptions=True)
             if app.state.persistent_agent:
                 await app.state.persistent_agent.shutdown()
             app.state.ingestion_stop.set()
@@ -112,9 +122,14 @@ def create_app(settings: Settings | None = None,
     app.state.retrieval_service = retrieval_service
     app.state.vector_repository = vector_repository
     app.state.settings = settings
+    app.state.accounts = accounts
+    from app.db.index_jobs import IndexJobs
+    from app.ingestion.index_worker import IndexWorker
+    app.state.index_jobs = IndexJobs(repository)
+    app.state.index_worker = IndexWorker(app)
     app.state.ingestion_repository = repository
     app.state.chunk_repository = chunk_repository
-    app.state.document_repository = DocumentRepository(repository)
+    app.state.document_repository = DocumentRepository(repository,accounts if settings.auth_mode=="accounts" else None)
     app.state.ingestion_worker = worker
     app.state.documents = DocumentService(settings.max_document_bytes, repository)
     app.state.conversations = conversations
@@ -170,6 +185,14 @@ def create_app(settings: Settings | None = None,
         message = "Not found" if exc.status_code == 404 else str(exc.detail)
         return error_response(code, message, request.state.request_id, exc.status_code)
 
+    from app.api.document_versions import router as versions_router
+    from app.api.auth import router as auth_router
+    from app.api.index_jobs import router as index_router
+    app.include_router(index_router)
+    app.include_router(auth_router)
+    app.include_router(versions_router)
+    from app.api.document_reviews import router as reviews_router
+    app.include_router(reviews_router)
     app.include_router(router)
     app.include_router(agent_router)
     app.include_router(workbench_router)

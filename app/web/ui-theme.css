@@ -31,7 +31,7 @@
   --shadow-glass:0 12px 36px rgba(36,67,46,.055),0 1px 3px rgba(36,67,46,.035),0 0 0 1px rgba(78,108,87,.055),inset 0 1px 0 rgba(255,255,255,.96);
   --font:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
 }
-body {background:radial-gradient(ellipse at 4% 0%,rgba(149,184,158,.22),transparent 48%),radial-gradient(ellipse at 100% 32%,rgba(179,199,174,.2),transparent 46%),linear-gradient(145deg,#edf2ed,#f8f9f6 52%,#eef3ec);}
+body {min-height:100vh;min-height:100dvh;background:radial-gradient(ellipse at 4% 0%,rgba(149,184,158,.22),transparent 48%),radial-gradient(ellipse at 100% 32%,rgba(179,199,174,.2),transparent 46%),linear-gradient(145deg,#edf2ed,#f8f9f6 52%,#eef3ec);background-repeat:no-repeat;}
 button,a,input,select,textarea,summary {transition:background-color var(--motion-fast) var(--ease-out),border-color var(--motion-fast) var(--ease-out),box-shadow var(--motion-fast) var(--ease-out);}
 button:disabled {cursor:not-allowed;}
 .primary-button,.secondary-button,.text-button {border-radius:var(--radius-sm);font-size:13px;min-height:38px;}

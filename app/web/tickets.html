@@ -1,17 +1,17 @@
 <!doctype html>
 <html lang="zh-CN">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>KnowledgeOps · 我的工单</title><link rel="icon" href="/workbench/assets/favicon.svg">
-<link rel="stylesheet" href="/workbench/assets/workbench.css"><link rel="stylesheet" href="/workbench/assets/tickets.css?v=20261017-ticket-policy">
+<title>KnowledgeOps · 工单</title><link rel="icon" href="/workbench/assets/favicon.svg">
+<link rel="stylesheet" href="/workbench/assets/workbench.css"><link rel="stylesheet" href="/workbench/assets/tickets.css?v=20261020-ticket-tabs">
 <link rel="stylesheet" href="/workbench/assets/app-header.css"><link rel="stylesheet" href="/workbench/assets/ui-theme.css?v=20261017-glass">
-<script type="module" src="/workbench/assets/tickets.js?v=20261017-ticket-policy"></script></head>
+<script type="module" src="/workbench/assets/tickets.js?v=20261020-tab-selection"></script></head>
 <body><a class="skip-link" href="#ticket-content">跳到工单内容</a>
 <header class="topbar app-header"><a class="brand" href="/"><span>KnowledgeOps</span></a>
-<nav class="workspace-nav" aria-label="工作区"><a href="/">会话</a><a href="/knowledge">知识库</a><a href="/workbench/tickets" aria-current="page">我的工单</a><a href="/workbench/business">业务状态</a><a href="/settings">连接设置</a></nav><div class="top-actions"><div class="identity-group header-identity"><label for="identity">当前身份</label><select id="identity" aria-label="当前身份"><option value="u_engineer_001">工程师</option><option value="u_employee_001">普通员工</option><option value="u_support_001">IT 支持</option></select></div></div></header>
-<main class="tickets-page"><section class="heading-row"><div><h1 id="page-title">我的工单</h1><p id="ticket-scope-note" class="field-help">查看本人提交的工单、业务审批状态与处理记录。</p></div>
-<div class="actions"><button id="own-tickets" class="secondary-button">我的工单</button><button id="review-tickets" class="secondary-button" hidden>待我处理</button><button id="refresh-tickets" class="secondary-button">刷新</button></div></section>
+<nav class="workspace-nav" aria-label="工作区"><a href="/">会话</a><a href="/knowledge">知识库</a><a href="/workbench/tickets" aria-current="page">工单</a><a href="/workbench/business">业务状态</a><a href="/workbench/index-jobs">任务中心</a><a href="/settings" hidden>连接设置</a></nav><div class="top-actions"><div class="identity-group header-identity"><label for="identity">当前身份</label><select id="identity" aria-label="当前身份"><option value="u_engineer_001">工程师</option><option value="u_employee_001">普通员工</option><option value="u_support_001">IT 支持</option></select></div></div></header>
+<main class="tickets-page"><section class="heading-row ticket-heading"><h1 id="page-title">我的工单</h1>
+<div class="ticket-toolbar"><div class="actions ticket-tabs" role="group" aria-label="工单范围"><button id="own-tickets" class="secondary-button">我的工单</button><button id="review-tickets" class="secondary-button" hidden>待我处理</button></div><button id="refresh-tickets" class="secondary-button">刷新</button></div></section>
 <div id="ticket-notice" role="alert" class="notice" hidden></div>
-<div id="ticket-content" aria-live="polite"></div>
+<details id="ticket-notifications" class="panel settings-section"><summary>站内通知</summary></details><div id="ticket-content" aria-live="polite"></div>
 <div id="ticket-pagination" class="actions"></div>
 </main>
 <dialog id="ticket-source" aria-labelledby="ticket-source-title"><div class="dialog-heading"><h2 id="ticket-source-title">引用原文</h2><button id="close-source" type="button" class="icon-button" aria-label="关闭原文">×</button></div><pre id="ticket-source-text" class="ticket-description"></pre></dialog>

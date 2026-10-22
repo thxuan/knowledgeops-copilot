@@ -5,10 +5,10 @@ import logging
 import time
 from pydantic import ValidationError
 from app.core.errors import AppError
-from app.generation.context import build_context, retrieval_query, estimate_tokens
-from app.generation.models import GeneratedAnswer, REFUSAL, parse_generation, resolve_citations, grounded_answer
+from app.generation.context import build_context, retrieval_query, estimate_tokens, continuation_context
+from app.generation.models import GeneratedAnswer, REFUSAL, VALIDATION_FAILURE, parse_generation, resolve_citations
 from app.generation.review import review_messages
-from app.generation.streaming import claims_preview
+from app.generation.applicability import ApplicabilityValidationError, parse_assessed_generation, validate_clarification_scope
 
 logger = logging.getLogger("knowledgeops.generation")
 
@@ -16,10 +16,17 @@ REPAIR_HINTS = {
     "answer_claims_mismatch": "answer 必须逐字等于所有 claims.text 用换行符连接的结果，标点和空格也必须一致。",
     "citation_union_mismatch": "顶层 citations 必须是所有 claims.citations 的去重合集，不能多引、漏引或重复。",
     "citation_outside_evidence": "所有引用必须逐字复制本轮 evidence 中的 chunk_id，不能引用历史或编造 ID。",
-    "refusal_has_claims": "拒答时 insufficient_context=true，claims=[]；只输出 insufficient_context 和 claims。",
-    "missing_cited_claims": "回答时 insufficient_context=false，必须有非空 claims，且每条结论都有引用。",
+    "refusal_has_claims": "拒答时 insufficient_context=true、claims=[]、follow_up=null，applicability 必须说明 evidence_status=insufficient；缺用户条件则应追问。",
+    "missing_cited_claims": "回答时 insufficient_context=false，有事实回答时必须有非空 claims 且每条结论都有引用；只有追问时允许 claims=[] 并提供 follow_up。",
     "blank_answer": "有答案时每条 claims.text 必须是非空文本；拒答时 insufficient_context=true、claims=[]。不要输出 answer 或顶层 citations。",
-    "schema_invalid": "只输出 insufficient_context 和 claims；字段类型严格匹配，不增加 answer、顶层 citations 或 Markdown。控制结论总长度与引用数量在限制内。",
+    "schema_invalid": "只输出 insufficient_context、claims、follow_up 和 applicability；字段类型严格匹配，不增加 answer、顶层 citations 或 Markdown。控制结论总长度与引用数量在限制内。",
+    "clarification_scope": "澄清轮 claims 最多两条且合计不超过400字符，只保留通用或仅依赖已确认条件的必要简短说明，也可为空；不要枚举原因与专用操作。同步更新 claim_scopes。",
+    "missing_applicability": "必须填写 applicability.evidence_status、conditions 和逐条对应 claims 的 claim_scopes，拒答也必须说明证据是否适用。",
+    "applicability_mismatch": "检查条件名称唯一、引用条件存在，claim_scopes 与 claims 一一对应。general 的 conditions 为空；conditional 必须列出所需条件。missing 条件必须给出 question。",
+    "unconfirmed_conditions": "从 claims 删除条件未确认或不匹配的结论，同步删除对应 claim_scopes；缺失条件保留为 missing 并填写 question，用于追问。不要把专用结论改标 general。",
+    "unconfirmed_user_quote": "confirmed 的 user_quote 必须逐字摘录单条入模用户消息，不拼接、补写或同义改写原话；value 可规范化同义表达，不要求逐字出现在原话中，但不能增加或强化原话的含义。不能引用资料或助手文本确认条件。缺失的细节保留 missing 并追问。",
+    "invalid_condition_value": "已确认条件的 value 必须是非空、忠实于 user_quote 的条件值，允许同义规范化，禁止补充原话未提供的细节。",
+    "evidence_decision_mismatch": "区分缺用户条件与缺适用证据。有相关资料但缺系统等条件时，evidence_status=relevant，保留 missing 条件及 question，insufficient_context=false；只保留条件已确认的结论。只有已知条件下无适用资料时才 insufficient，且无 claims 或 missing 条件。追问必须对应 missing 条件。",
     "invalid_output": "只输出完整 JSON 对象，并控制在输出长度限制内。",
 }
 
@@ -33,6 +40,13 @@ def validation_code(exc):
         "Every answer needs cited claims": "missing_cited_claims",
         "Blank answer": "blank_answer",
         "Citation outside provided context": "citation_outside_evidence",
+        "Clarification exceeds scope": "clarification_scope",
+        "Missing applicability assessment": "missing_applicability",
+        "Claim applicability mismatch": "applicability_mismatch",
+        "Unconfirmed claim conditions": "unconfirmed_conditions",
+        "Condition not confirmed by user": "unconfirmed_user_quote",
+        "Invalid confirmed condition value": "invalid_condition_value",
+        "Evidence decision mismatch": "evidence_decision_mismatch",
     }
     if isinstance(exc, ValidationError):
         for error in exc.errors(include_input=False, include_url=False):
@@ -49,7 +63,7 @@ def schema_issues(exc):
     if not isinstance(exc, ValidationError):
         return []
     # Allowlist paths/types; unknown extra field names can contain private text.
-    fields = {"answer", "citations", "insufficient_context", "claims", "text"}
+    fields = {"answer", "citations", "insufficient_context", "claims", "text", "follow_up", "applicability", "conditions", "claim_scopes", "scope", "name", "value", "status", "user_quote", "question", "evidence_status"}
     types = {"missing", "extra_forbidden", "json_invalid", "json_type", "string_type",
              "bool_type", "list_type", "model_type", "string_too_short", "string_too_long",
              "too_short", "too_long", "value_error"}
@@ -79,7 +93,10 @@ class ChatService:
         snapshot = history_snapshot if history_snapshot is not None else await asyncio.to_thread(self.conversations.load, body.conversation_id, identity)
         history_ms = (time.perf_counter() - history_started) * 1000
         users = [m for m in snapshot["messages"] if m["role"] == "user"]
-        query = retrieval_query(body.message, users)
+        pending = continuation_context(body.message, snapshot.get("pending_follow_up"))
+        if pending and hasattr(self.conversations, "check_follow_up"):
+            pending = await asyncio.to_thread(self.conversations.check_follow_up, pending, identity)
+        query = retrieval_query(body.message, users, pending)
         kwargs = {"top_k": body.top_k, "filters": body.filters.model_dump()}
         if hasattr(self.vectors, "retrieve_coverage"):
             kwargs["retrieval_profile"] = body.retrieval_profile
@@ -89,7 +106,8 @@ class ChatService:
         retrieval_ms = (time.perf_counter() - retrieval_started) * 1000
         context_started = time.perf_counter()
         context = build_context(body.message, snapshot["messages"], snapshot["summary"], result["hits"], self.settings,
-                                preserve_order=result.get("diagnostics", {}).get("retrieval_profile") in {"coverage", "multi_query"})
+                                preserve_order=result.get("diagnostics", {}).get("retrieval_profile") in {"coverage", "multi_query"},
+                                pending_follow_up=pending)
         await asyncio.to_thread(self.conversations.check_evidence, context.evidence, identity)
         status, reason, attempts = "refused", "no_evidence_in_budget", 0
         answer = GeneratedAnswer(answer=REFUSAL, citations=[], insufficient_context=True, claims=[])
@@ -103,37 +121,33 @@ class ChatService:
         output_validation_ms = 0.0
         validation_failures = []
         review_status = "disabled" if not self.settings.coverage_review else "not_needed"
-        if ids:
+        can_ask = (reason == "no_evidence_in_budget" and self.settings.provider == "compatible"
+                   and body.filters.document_ids != [])
+        if ids or can_ask:
             phase, repaired = "draft", False
             # One draft + one coverage review, sharing a single format repair.
             while attempts < 3:
                 attempts += 1
                 try:
+                    if pending and hasattr(self.conversations, "check_follow_up"):
+                        if not await asyncio.to_thread(self.conversations.check_follow_up, pending, identity):
+                            raise AppError("EVIDENCE_CHANGED", "原追问的依据已失效或无权访问，请重新提问。", 409)
                     call_started = time.perf_counter()
                     await notify("reset", {"phase": phase})
                     await notify("phase", {"stage": "review" if phase == "review" else "generating"})
                     if on_event and hasattr(self.client, "generate_stream"):
-                        partial, last_preview, last_at = "", "", 0.0
+                        # Do not expose claim text before applicability and citation validation.
+                        partial_bytes = 0
 
                         async def delta(text):
-                            nonlocal partial, last_preview, last_at
-                            partial += text
-                            now = time.perf_counter()
-                            if len(partial.encode("utf-8")) > self.settings.output_limit * 16:
+                            nonlocal partial_bytes
+                            partial_bytes += len(text.encode("utf-8"))
+                            if partial_bytes > self.settings.output_limit * 16:
                                 raise ValueError("Invalid or excessive model output")
-                            if now - last_at < .04:
-                                return
-                            preview = claims_preview(partial)
-                            if preview != last_preview:
-                                await notify("preview", {"text": preview, "phase": phase})
-                                last_preview, last_at = preview, now
 
                         raw = await asyncio.wait_for(
                             self.client.generate_stream(context.messages, self.settings, delta),
                             self.settings.timeout_seconds)
-                        preview = claims_preview(str(raw))
-                        if preview != last_preview:
-                            await notify("preview", {"text": preview, "phase": phase})
                     else:
                         raw = await asyncio.wait_for(self.client.generate(context.messages, self.settings),
                                                      self.settings.timeout_seconds)
@@ -149,15 +163,20 @@ class ChatService:
                     try:
                         if not isinstance(raw, str) or len(raw.encode("utf-8")) > self.settings.output_limit * 16:
                             raise ValueError("Invalid or excessive model output")
-                        parsed = resolve_citations(parse_generation(raw), context.citation_map)
+                        parsed = (parse_assessed_generation(raw, context.messages)
+                                  if self.settings.provider == "compatible" else parse_generation(raw))
+                        parsed = validate_clarification_scope(resolve_citations(parsed, context.citation_map))
                         if not set(parsed.citations) <= ids:
                             raise ValueError("Citation outside provided context")
                     finally:
                         output_validation_ms += (time.perf_counter() - validation_started) * 1000
                     answer = (GeneratedAnswer(answer=REFUSAL, citations=[], insufficient_context=True, claims=[])
                               if parsed.insufficient_context else parsed)
-                    status = "refused" if parsed.insufficient_context else "answered"
+                    status = "refused" if parsed.insufficient_context else "needs_clarification" if parsed.follow_up else "answered"
                     reason = "insufficient_context" if parsed.insufficient_context else None
+                    if parsed.follow_up:
+                        review_status = "skipped_clarification"
+                        break
                     if phase == "review":
                         review_status = "completed"
                         break
@@ -175,14 +194,19 @@ class ChatService:
                     break
                 except (ValidationError, ValueError, TypeError) as exc:
                     status, reason = "rejected", "invalid_generation"
-                    answer = GeneratedAnswer(answer=REFUSAL, citations=[], insufficient_context=True, claims=[])
+                    answer = GeneratedAnswer(answer=VALIDATION_FAILURE, citations=[], insufficient_context=True, claims=[])
                     if phase == "review":
                         review_status = "failed"
                     code = validation_code(exc)
-                    validation_failures.append({"phase": phase, "attempt": attempts, "code": code})
+                    failure = {"phase": phase, "attempt": attempts, "code": code}
+                    if isinstance(exc, ApplicabilityValidationError):
+                        failure.update(field=exc.field, detail=exc.detail)
+                    validation_failures.append(failure)
                     event = {"event": "generation.validation_failed",
                         "conversation_id": snapshot["conversation_id"], "attempt": attempts,
                         "phase": phase, "validation_code": code}
+                    if isinstance(exc, ApplicabilityValidationError):
+                        event["validation_details"] = {"field": exc.field, "detail": exc.detail}
                     if code == "schema_invalid":
                         event["schema_issues"] = schema_issues(exc)
                     logger.info(json.dumps(event, ensure_ascii=False))
@@ -190,8 +214,9 @@ class ChatService:
                         break
                     repaired = True
                     # Fixed hints only; never replay invalid model text.
+                    field_hint = ("需修正字段：" + exc.field + "。" if isinstance(exc, ApplicabilityValidationError) else "")
                     repair = {"role": "system", "content": context.messages[0]["content"] +
-                              "\n上次输出未通过校验。" + REPAIR_HINTS[code] +
+                              "\n上次输出未通过校验。" + field_hint + REPAIR_HINTS[code] +
                               "重新生成符合 JSON Schema 且只使用本轮引用的完整输出。"}
                     messages = [repair, context.messages[1]]
                     if estimate_tokens(messages) + self.settings.output_limit > self.settings.input_limit:
@@ -199,20 +224,13 @@ class ChatService:
                     context.messages = messages
                 except TimeoutError as exc:
                     raise AppError("GENERATION_TIMEOUT", "Generation timed out; no answer committed", 504) from exc
-        answer_mode = "generated"
-        if self.settings.provider == "compatible" and self.settings.answer_mode == "grounded" and status == "answered":
-            try:
-                # Use whole selected source passages, never model-authored factual edits.
-                answer = grounded_answer(answer, context.evidence, body.message)
-                answer_mode = "grounded"
-            except (ValidationError, ValueError):
-                status, reason = "rejected", "evidence_output_limit"
-                answer = GeneratedAnswer(answer=REFUSAL, citations=[], insufficient_context=True, claims=[])
+        # Whole-source expansion could reintroduce unassessed branches. Render only
+        # the claims that passed this request's applicability and scope checks.
         generation_ms = (time.perf_counter() - generation_started) * 1000
         by_id = {hit["chunk_id"]: hit["citation"] for hit in context.evidence}
         response = {"conversation_id": snapshot["conversation_id"], "answer": answer.answer,
             "citations": [by_id[cid] for cid in answer.citations],
-            "claims": [c.model_dump() for c in answer.claims],
+            "claims": [c.model_dump() for c in answer.claims], "follow_up": answer.follow_up,
             "insufficient_context": answer.insufficient_context, "status": status, "reason": reason,
             "model_provider": self.settings.provider, "model_id": self.settings.model_id,
             "context": {"input_token_estimate": estimate_tokens(context.messages),
@@ -222,6 +240,7 @@ class ChatService:
                 "omitted_user_messages": context.omitted_history, "evidence_count": len(context.evidence),
                 "retrieval_hit_count": len(result["hits"]), "generation_attempts": attempts,
                 "retrieval_query": query,
+                "follow_up_origin": (pending["original_question"] if pending else body.message) if answer.follow_up else None,
                 "timings_ms": {"retrieval": round(retrieval_ms, 3),
                     "context_and_validation": round(context_ms, 3), "generation": round(generation_ms, 3)},
                 "model_usage": model_usage,
@@ -231,14 +250,15 @@ class ChatService:
                 "evidence_chunk_ids": [h["chunk_id"] for h in context.evidence],
                 "omitted_evidence_ids": context.omitted_evidence_ids,
                 "coverage_review": review_status,
-                "validation_failures": validation_failures, "answer_mode": answer_mode}}
+                "validation_failures": validation_failures, "answer_mode": "generated"}}
         if effective_config is not None:
             response["context"]["effective_config"] = effective_config
         await notify("phase", {"stage": "saving"})
         commit_started = time.perf_counter()
         if commit_turn:
             await asyncio.to_thread(self.conversations.commit, snapshot, identity, body.message, response,
-                                    context.evidence, self.settings.summary_budget)
+                                    context.evidence, self.settings.summary_budget,
+                                    **({"pending_follow_up": pending} if pending else {}))
         # Final response timings are measured after persistence; phase timings and
         # usage above are persisted, commit/total timings describe this live response.
         response["context"]["timings_ms"].update(commit=round((time.perf_counter() - commit_started) * 1000, 3),

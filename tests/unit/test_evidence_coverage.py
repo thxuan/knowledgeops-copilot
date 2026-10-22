@@ -6,7 +6,8 @@ import pytest
 from app.api.schemas import ChatRequest
 from app.core.errors import AppError
 from app.generation.context import build_context
-from app.generation.models import REFUSAL
+from app.generation.models import REFUSAL, VALIDATION_FAILURE
+from tests.doubles import assessed_output
 from app.generation.provider import GenerationSettings
 from app.generation.service import ChatService
 
@@ -17,8 +18,7 @@ def hit(key, source="procedure", text="Report the incident."):
 
 
 def output(*claims):
-    return json.dumps({"insufficient_context": False,
-                       "claims": [{"text": text, "citations": [cid]} for text, cid in claims]})
+    return assessed_output([{"text": text, "citations": [cid]} for text, cid in claims])
 
 
 class Repository:
@@ -50,7 +50,7 @@ class Model:
 
 
 def settings(**kwargs):
-    return replace(GenerationSettings(provider="compatible", model_id="fixture", api_key="mock-only", answer_mode="generated"), **kwargs)
+    return replace(GenerationSettings(provider="compatible", model_id="fixture", api_key="mock-only"), **kwargs)
 
 
 def run(model, repo=None, hits=None, config=None):
@@ -102,7 +102,7 @@ def test_draft_and_review_share_one_repair_budget():
     value, _ = run(model)
     assert len(model.calls) == 3
     assert value["status"] == "rejected"
-    assert value["answer"] == REFUSAL
+    assert value["answer"] == VALIDATION_FAILURE
     assert value["context"]["coverage_review"] == "failed"
 
 
@@ -135,7 +135,7 @@ def test_explicit_review_disable_preserves_single_call():
 
 
 def test_review_refusal_discards_the_answered_draft():
-    model = Model([output(("Report.", "report")), '{"insufficient_context":true,"claims":[]}'])
+    model = Model([output(("Report.", "report")), assessed_output(refused=True)])
     value, _ = run(model)
     assert value["status"] == "refused" and value["answer"] == REFUSAL
     assert value["claims"] == value["citations"] == []
@@ -165,38 +165,11 @@ def test_unknown_short_reference_is_rejected_and_diagnostics_exclude_model_text(
     assert "private-output-marker" not in json.dumps(value)
 
 
-def test_grounded_answer_keeps_authority_and_discards_model_factual_edits():
-    source = "Report loss immediately. End active sessions. Only security decides remote erasure."
-    model = Model([output(("Report loss.", "E1")), output(("Erase the device yourself.", "E1"))])
-    value, _ = run(model, hits=[hit("actual", text=source)], config=settings(answer_mode="grounded"))
-    assert value["answer"] == source
-    assert value["context"]["answer_mode"] == "grounded"
-    assert value["claims"] == [{"text": source, "citations": ["actual"]}]
-    assert "Erase the device yourself" not in value["answer"]
-
-
-def test_grounded_answer_deduplicates_repeated_passage_references():
-    model = Model([output(("Report.", "E1")), output(("Report.", "E1"), ("Another wording.", "E1"))])
-    value, _ = run(model, hits=[hit("actual")], config=settings(answer_mode="grounded"))
-    assert value["answer"] == "Report the incident." and len(value["claims"]) == 1
-
-
-def test_grounded_answer_never_truncates_a_large_rule_to_hide_its_condition():
-    model = Model([output(("Claim.", "E1")), output(("Claim.", "E1"))])
-    value, _ = run(model, hits=[hit("actual", text="x" * 4001)], config=settings(answer_mode="grounded"))
-    assert value["status"] == "rejected" and value["reason"] == "evidence_output_limit"
-    assert value["claims"] == []
-
-
-def test_queried_section_gap_expands_only_selected_source_inside_actual_context():
-    from app.generation.models import grounded_answer, parse_generation
-    first = hit("emergency", "changes", "Emergency fixes require approval.")
-    freeze = hit("freeze", "changes", "During freeze only emergency recovery is permitted.")
-    freeze["citation"]["heading_paths"] = [["Change rules", "Freeze window"]]
-    unrelated = hit("other", "another-source", "Freeze has unrelated restrictions.")
-    unrelated["citation"]["heading_paths"] = [["Other rules", "Freeze window"]]
-    result = grounded_answer(parse_generation(output(("Emergency fixes.", "emergency"))),
-                             [first, freeze, unrelated], "Can I deploy during a freeze?")
-    assert result.citations == ["emergency", "freeze"]
-    assert result.claims[1].text == freeze["text"]
-    assert "unrelated restrictions" not in result.answer
+def test_answer_renders_only_validated_claims_without_expanding_source_branches():
+    source = "General guidance. A conditional operation requiring extra authorization."
+    model = Model([output(("Draft.", "E1")), output(("General guidance.", "E1"))])
+    value, _ = run(model, hits=[hit("actual", text=source)])
+    assert value["answer"] == "General guidance."
+    assert value["context"]["answer_mode"] == "generated"
+    assert value["claims"] == [{"text": "General guidance.", "citations": ["actual"]}]
+    assert "conditional operation" not in value["answer"]

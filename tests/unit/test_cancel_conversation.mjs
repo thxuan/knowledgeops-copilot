@@ -12,8 +12,8 @@ function harness(responses=[]){
  const agent={run_id:'active',status:'waiting_approval',pending:{expires_at:0},trace:[]};
  const record={id:'active',record_meta:{session_id:'original'},agent};
  const state={agent,agentRuns:[record],runs:[{id:'question'}],failures:[{id:'failure'}],identity:'engineer',agentByIdentity:new Map([['engineer',agent]]),conversation:'old-server-conversation',sessionId:'original',agentRequest:{key:'old-request'},current:'question',last:{message:'old question'},view:'chat',evaluationMode:false,busy:false,epoch:1};
- let welcomed=0,evidence='old',refreshed=0;
- const context=vm.createContext({state,crypto:globalThis.crypto,structuredClone,Date,JSON,encodeURIComponent,$:node,
+ let welcomed=0,evidence='old',refreshed=0,historyResets=0;
+ const context=vm.createContext({conversationHistory:{startNew(){historyResets++;}},state,crypto:globalThis.crypto,structuredClone,Date,JSON,encodeURIComponent,$:node,
   document:{querySelectorAll:()=>[]},el:(tag,cls,text)=>({tag,cls,text}),
   showWelcome(){welcomed++;node('chat-log').replaceChildren('welcome');},showNotice:text=>notices.push(text),
   renderQuestions(){},renderExperiments(){},updateControls(){},resizeComposer(){},
@@ -22,7 +22,7 @@ function harness(responses=[]){
   refreshAgent:async()=>{refreshed++;},pollAgent(){throw new Error('A cancelled task cannot poll again');}
  });
  vm.runInContext(render+action,context);
- return {context,state,record,node,calls,saved,notices,get welcomed(){return welcomed;},get evidence(){return evidence;},get refreshed(){return refreshed;}};
+ return {context,state,record,node,calls,saved,notices,get historyResets(){return historyResets;},get welcomed(){return welcomed;},get evidence(){return evidence;},get refreshed(){return refreshed;}};
 }
 
 test('successful cancellation clears messages and draft, detaches history, and preserves records',async()=>{
@@ -31,6 +31,7 @@ test('successful cancellation clears messages and draft, detaches history, and p
  await vm.runInContext("agentAction('cancel',undefined,'active')",env.context);
  assert.deepEqual(env.calls.map(call=>call.path),['/agent/active/cancel']);
  assert.deepEqual(env.node('chat-log').children,['welcome']);assert.equal(env.node('message').value,'');
+ assert.equal(env.historyResets,1);
  assert.equal(env.state.agent,null);assert.equal(env.state.conversation,null);assert.notEqual(env.state.sessionId,'original');
  assert.equal(env.state.agentRequest,null);assert.equal(env.state.last,null);assert.equal(env.state.current,null);
  assert.equal(env.state.agentByIdentity.has('engineer'),false);assert.equal(env.state.busy,false);

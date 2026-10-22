@@ -275,19 +275,18 @@ def import_corpus(directory, database_url, schema):
         content = local_path(directory / "documents", row["filename"]).read_bytes()
         receipt = intake.submit(identity=owner, filename=row["filename"], content=content,
             file_hash=row["sha256"], parser_version=row["parser_version"], source=row["source"], version=row["version"])
-        if not receipt["duplicate"]:
-            document_repo.permissions(receipt["document_id"], owner, row["user_ids"])
+        # Imported files remain private drafts; manifest user_ids are proposed publication scope.
         while True:
             task = intake.get_task(receipt["task_id"], owner)
             if task["status"] == "succeeded":
                 break
             if task["status"] == "failed" or not worker.process_next():
                 raise RuntimeError("Inspect ingestion task: " + receipt["task_id"])
-        built = chunks.build(receipt["document_id"], owner, ChunkConfig(size=800))
+        built = chunks.build(receipt["document_id"], owner, ChunkConfig(size=800), publish=False)
         result.append({"document_id": receipt["document_id"], "source": row["source"], "chunks": built["count"],
                        "duplicate": receipt["duplicate"]})
     report = {"profile": VERSION, "schema": schema, "document_count": len(result),
-              "chunks": sum(r["chunks"] for r in result), "embedding_performed": False, "documents": result}
+              "chunks": sum(r["chunks"] for r in result), "embedding_performed": False, "publication_requires_review": True, "documents": result}
     dump(directory / "import-report.json", report)
     return {k: v for k, v in report.items() if k != "documents"}
 

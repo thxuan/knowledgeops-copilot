@@ -1,3 +1,4 @@
+from tests.doubles import seed_published_legacy
 from conftest import pg_dsn
 from fastapi.testclient import TestClient
 from app.core.config import Settings
@@ -23,6 +24,7 @@ def test_build_rebuild_access_and_persistence(tmp_path):
         assert client.get(url, headers=HEADERS).status_code == 409
         assert client.post(url, headers=HEADERS, json={}).status_code == 409
         app.state.ingestion_worker.process_next()
+        seed_published_legacy(app,receipt['document_id'])
         assert client.get(url, headers=HEADERS).json()["error"]["code"] == "CHUNKS_NOT_BUILT"
         first_response = client.post(url, headers=HEADERS, json={})
         assert first_response.status_code == 200, first_response.text

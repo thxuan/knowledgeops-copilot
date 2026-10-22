@@ -3,13 +3,15 @@ import base64
 import json
 from uuid import uuid4
 from psycopg import sql
+from psycopg.types.json import Jsonb
 from psycopg.conninfo import make_conninfo, conninfo_to_dict
 from app.db.ingestion import IngestionRepository
 from app.db.chunks import ChunkRepository
 from app.db.conversations import ConversationRepository
 
 TABLES = ("documents", "document_access", "ingestion_jobs", "ingestion_events",
-          "chunk_sets", "chunks", "document_chunk_heads", "conversations", "conversation_messages")
+          "chunk_sets", "chunks", "document_chunk_heads", "conversations", "conversation_messages",
+          "document_versions", "document_version_heads", "document_version_builds", "document_lifecycle_events", "ko_index_jobs", "document_reviews")
 
 def database_label(url):
     config = conninfo_to_dict(url)
@@ -31,8 +33,8 @@ def restore_rows(db, tables):
         statement = sql.SQL("INSERT INTO {} ({}) VALUES ({})").format(
             sql.Identifier(table), sql.SQL(",").join(map(sql.Identifier, columns)),
             sql.SQL(",").join(sql.Placeholder() for _ in columns))
-        db.cursor().executemany(statement, [tuple(row[c] for c in columns) for row in rows])
-    for table, column in (("ingestion_events", "event_id"), ("conversation_messages", "message_id")):
+        db.cursor().executemany(statement, [tuple(Jsonb(row[c]) if isinstance(row[c],(dict,list)) else row[c] for c in columns) for row in rows])
+    for table, column in (("ingestion_events", "event_id"), ("conversation_messages", "message_id"), ("document_lifecycle_events", "event_id")):
         maximum = db.execute(sql.SQL("SELECT max({}) AS value FROM {}").format(
             sql.Identifier(column), sql.Identifier(table))).fetchone()["value"]
         db.execute("SELECT setval(pg_get_serial_sequence(%s, %s), %s, %s)",

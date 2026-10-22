@@ -1,3 +1,5 @@
+from tests.doubles import HashEmbeddingDouble
+from tests.doubles import seed_published_legacy
 from tests.doubles import LexicalRerankDouble
 from conftest import pg_dsn
 import asyncio
@@ -8,7 +10,7 @@ import pytest
 import psycopg
 from fastapi.testclient import TestClient
 from app.core.config import Settings
-from app.core.embedding import EmbeddingSettings, EmbeddingError, EmbeddingResult
+from app.core.embedding import EmbeddingSettings, EmbeddingError
 from app.core.errors import AppError
 from app.core.identity import LOCAL_IDENTITIES
 from app.db.vectors import VectorRepository
@@ -21,9 +23,10 @@ def vector_app(tmp_path):
     url = os.getenv("KNOWLEDGEOPS_TEST_VECTOR_DATABASE_URL")
     if not url:
         pytest.skip("Set KNOWLEDGEOPS_TEST_VECTOR_DATABASE_URL for real pgvector tests")
-    embedding = EmbeddingSettings(collection="test-" + uuid4().hex, dimensions=16, batch_size=2)
+    embedding = EmbeddingSettings(provider="compatible", api_key="offline-only", collection="test-" + uuid4().hex, dimensions=16, batch_size=2)
     app = create_app(Settings(app_env="test", database_url=pg_dsn("intake.db"),
-        ingestion_worker_enabled=False, vector_database_url=url, embedding=embedding))
+        ingestion_worker_enabled=False, index_worker_enabled=False, vector_database_url=pg_dsn("intake.db"), embedding=embedding))
+    app.state.vector_service.client = HashEmbeddingDouble(embedding)
     with TestClient(app) as client:
         yield app, client
     repo = app.state.vector_repository
@@ -44,6 +47,7 @@ def upload(app, client):
         data={"source":"fixture/vpn.md", "version":"v1"}).json()
     app.state.ingestion_worker.process_next()
     doc_id = receipt["document_id"]
+    seed_published_legacy(app,doc_id)
     response = client.post(f"/documents/{doc_id}/chunks", headers=HEADERS, json={})
     assert response.status_code == 200, response.text
     return doc_id, response.json()
@@ -165,45 +169,41 @@ def test_retrieval_filters_citations_and_identity(vector_app):
     app.dependency_overrides.clear()
 
 
+def reviewed_update(app, client, doc, content, label='v2', users=None):
+    revision=client.get(f'/documents/{doc}/versions',headers=HEADERS).json()['revision']
+    r=client.post(f'/documents/{doc}/versions',headers=HEADERS,files={'file':('vpn.md',bytes(content))},data={'version':label,'note':'测试审批发布','expected_revision':revision})
+    assert r.status_code==201,r.text
+    version=r.json()['version_id']
+    r=client.post('/index-jobs',headers=HEADERS,json={'document_id':doc,'version_id':version})
+    assert r.status_code==202,r.text
+    asyncio.run(app.state.index_worker.process_next())
+    job=client.get('/index-jobs/'+r.json()['job_id'],headers=HEADERS).json();assert job['status']=='succeeded',job
+    r=client.post(f'/documents/{doc}/versions/{version}/review',headers=HEADERS,json={'expected_revision':revision,'user_ids':users or ['u_engineer_001']})
+    assert r.status_code==202,r.text
+    result=client.post('/document-reviews/'+r.json()['review_id']+'/approve',headers={'X-Local-User-Id':'u_admin_001'},json={})
+    assert result.status_code==200,result.text
+    return result
+
+
 def test_update_delete_and_old_citation_invalidation(vector_app):
-    app, client = vector_app
-    doc_id, _ = upload(app, client)
-    index = f"/documents/{doc_id}/index"
-    client.post(index, headers=HEADERS)
-    old = retrieve(client)["hits"][0]["citation"]
-    url = f"/documents/{doc_id}"
-    with app.state.ingestion_repository.connection() as db:
-        original = db.execute("SELECT content FROM documents WHERE document_id=%s", (doc_id,)).fetchone()["content"]
-    update = client.put(url, headers=HEADERS, files={"file":("vpn.md", original)},
-                        data={"version":"v2","expected_version":"v1"})
-    assert update.status_code == 200, update.text
-    assert update.json()["index_required"] and update.json()["revision"] == 2
-    assert not retrieve(client)["hits"]
-    assert client.get(old["url"], headers=HEADERS).status_code == 404
-    assert client.post(index, headers=HEADERS).status_code == 409
-    assert client.put(url, headers=HEADERS, files={"file":("vpn.md", b"# New")},
-                      data={"version":"v3","expected_version":"v1"}).status_code == 409
-    # Same body, new provenance must not reuse an old chunk/vector payload.
-    client.post(url+"/chunks", headers=HEADERS, json={})
-    assert client.post(index, headers=HEADERS).status_code == 200
-    new = retrieve(client)["hits"][0]["citation"]
-    assert new["version"] == "v2" and new["chunk_id"] != old["chunk_id"]
-    assert client.get(old["url"], headers=HEADERS).status_code == 404
-    assert client.get(new["url"], headers=HEADERS).status_code == 200
-    # Returning to an earlier version label still creates a new generation.
-    assert client.put(url, headers=HEADERS, files={"file":("vpn.md", original)},
-                      data={"version":"v1","expected_version":"v2"}).status_code == 200
-    client.post(url+"/chunks", headers=HEADERS, json={})
-    client.post(index, headers=HEADERS)
-    restored = retrieve(client)["hits"][0]["citation"]
-    assert restored["chunk_id"] not in {old["chunk_id"],new["chunk_id"]}
-    assert client.get(old["url"], headers=HEADERS).status_code == 404
-    assert client.delete(url, headers=HEADERS).status_code == 204
-    assert not retrieve(client)["hits"]
-    assert not client.post("/search/vector", headers=HEADERS, json={"query":"x"}).json()["hits"]
-    for path in [restored["url"], url+"/chunks"]:
-        assert client.get(path, headers=HEADERS).status_code == 404
-    assert client.post(index, headers=HEADERS).status_code == 404
+    app,client=vector_app;doc,_=upload(app,client)
+    client.post(f'/documents/{doc}/index',headers=HEADERS)
+    old=retrieve(client)['hits'][0]['citation'];url=f'/documents/{doc}'
+    with app.state.ingestion_repository.connection() as db:original=db.execute('SELECT content FROM documents WHERE document_id=%s',(doc,)).fetchone()['content']
+    assert client.put(url,headers=HEADERS,files={'file':('vpn.md',original)},data={'version':'v2','expected_version':'v1'}).status_code==409
+    assert client.get(old['url'],headers=HEADERS).status_code==200
+    reviewed_update(app,client,doc,original)
+    new=retrieve(client)['hits'][0]['citation']
+    assert new['version']=='v2' and new['chunk_id']!=old['chunk_id']
+    assert client.get(old['url'],headers=HEADERS).status_code==404
+    assert client.get(new['url'],headers=HEADERS).status_code==200
+    reviewed_update(app,client,doc,original,'v3')
+    restored=retrieve(client)['hits'][0]['citation']
+    assert restored['chunk_id'] not in {old['chunk_id'],new['chunk_id']}
+    assert client.delete(url,headers=HEADERS).status_code==204
+    assert retrieve(client)['hits']==[]
+    assert client.get(restored['url'],headers=HEADERS).status_code==404
+    assert client.post(url+'/index',headers=HEADERS).status_code==404
 
 
 def test_acl_revocation_rechecks_saved_links_and_duplicate_upload(vector_app):
@@ -211,7 +211,9 @@ def test_acl_revocation_rechecks_saved_links_and_duplicate_upload(vector_app):
     doc_id, _ = upload(app, client)
     client.post(f"/documents/{doc_id}/index", headers=HEADERS)
     permissions = f"/documents/{doc_id}/permissions"
-    assert client.put(permissions, headers=HEADERS, json={"user_ids":["u_engineer_001","u_employee_001"]}).status_code == 200
+    assert client.put(permissions, headers=HEADERS, json={"user_ids":["u_engineer_001","u_employee_001"]}).status_code == 409
+    with app.state.ingestion_repository.connection() as db:content=db.execute('SELECT content FROM documents WHERE document_id=%s',(doc_id,)).fetchone()['content']
+    reviewed_update(app,client,doc_id,content,users=['u_engineer_001','u_employee_001'])
     saved = retrieve(client, headers=EMPLOYEE)["hits"][0]["citation"]
     assert client.get(saved["url"], headers=EMPLOYEE).status_code == 200
     assert client.put(permissions, headers=EMPLOYEE, json={"user_ids":["u_employee_001"]}).status_code == 404
@@ -227,7 +229,8 @@ def test_acl_revocation_rechecks_saved_links_and_duplicate_upload(vector_app):
     assert client.put(permissions, headers=HEADERS, json={"user_ids":[]}).status_code == 200
     assert not retrieve(client)["hits"]
     # Owner administration is separate from the reading ACL, so it can be restored.
-    assert client.put(permissions, headers=HEADERS, json={"user_ids":["u_engineer_001"]}).status_code == 200
+    assert client.put(permissions, headers=HEADERS, json={"user_ids":["u_engineer_001"]}).status_code == 409
+    reviewed_update(app,client,doc_id,content,'v3')
     assert retrieve(client)["hits"]
 
 
@@ -268,6 +271,7 @@ def test_two_private_identities_cannot_read_each_others_content(vector_app):
     receipt=client.post("/documents",headers=SUPPORT,files={"file":("support.md",b"# Support private\nTL-403 incident escalation only.")},data={"version":"s1"}).json()
     app.state.ingestion_worker.process_next()
     support_doc=receipt["document_id"]
+    seed_published_legacy(app,support_doc)
     client.post(f"/documents/{support_doc}/chunks",headers=SUPPORT,json={})
     for doc,headers in [(engineer_doc,HEADERS),(support_doc,SUPPORT)]:
         assert client.post(f"/documents/{doc}/index",headers=headers).status_code==200
@@ -285,7 +289,7 @@ def test_invalid_update_preserves_old_active_version(vector_app):
     client.post(f"/documents/{doc}/index",headers=HEADERS)
     citation=retrieve(client)["hits"][0]["citation"]
     for filename,content,status in [("bad.txt",b"\xff",422),("blank.txt",b" ",422),("bad.pdf",b"x",415)]:
-        assert client.put(f"/documents/{doc}",headers=HEADERS,files={"file":(filename,content)},data={"version":"v2","expected_version":"v1"}).status_code==status
+        assert client.post(f"/documents/{doc}/versions",headers=HEADERS,files={"file":(filename,content)},data={"version":"v2","note":"invalid input","expected_revision":1}).status_code==status
         assert client.get(citation["url"],headers=HEADERS).status_code==200
     assert client.put(f"/documents/{doc}",headers=EMPLOYEE,files={"file":("valid.md",b"# Other")},data={"version":"v2","expected_version":"v1"}).status_code==404
 
@@ -298,7 +302,7 @@ def test_update_during_search_drops_old_hits(vector_app,monkeypatch):
     original=repo.search
     def change_after_query(*args,**kwargs):
         hits=original(*args,**kwargs)
-        app.state.document_repository.update(doc,LOCAL_IDENTITIES["u_engineer_001"],"new.md",b"# New version\nnew policy", "v2","v1")
+        reviewed_update(app,client,doc,b"# New version\nnew policy")
         return hits
     monkeypatch.setattr(repo,"search",change_after_query)
     assert not retrieve(client)["hits"]
@@ -350,9 +354,8 @@ def test_day9_modes_authorization_filters_versions_and_citations(vector_app, str
     answer = client.post('/chat', headers=HEADERS, json={'message': 'TL-403 设备修复后等待多久？'})
     assert answer.status_code == 200 and answer.json()['status'] == 'answered'
     old = result['hits'][0]['citation']
-    app.state.document_repository.update(doc, LOCAL_IDENTITIES['u_engineer_001'],
-        'new.md', b'# New\nTL-403 new version', 'v2', 'v1')
-    assert not retrieve(client, strategy=strategy)['hits']
+    reviewed_update(app,client,doc,b'# New\nTL-403 new version')
+    assert all(h['version']=='v2' for h in retrieve(client,strategy=strategy)['hits'])
     assert client.get(old['url'], headers=HEADERS).status_code == 404
     client.post(f'/documents/{doc}/chunks', headers=HEADERS, json={})
     assert client.post(f'/documents/{doc}/index', headers=HEADERS).status_code == 200
