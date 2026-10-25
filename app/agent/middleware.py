@@ -51,11 +51,14 @@ class AgentPolicy(AgentMiddleware):
         domain = await self.load()
         if domain["phase"] == "tools":
             # Adopt legacy pending calls through the framework's tools node.
+            self.validate_retrieval_batch(domain)
             return {"jump_to": "tools"}
 
     @hook_config(can_jump_to=["model", "end"])
     async def aafter_model(self, state, runtime):
         domain = await self.load()
+        if domain["phase"] == "tools":
+            self.validate_retrieval_batch(domain)
         if domain["phase"] == "final_repair":
             return {"jump_to": "model"}
         if domain["status"] == "completed":
@@ -163,6 +166,22 @@ class AgentPolicy(AgentMiddleware):
                 event(state, "text_delta", text=answer[offset:offset+120])
             event(state, "final", status=state["status"], outcome=state["outcome"], answer=answer)
             return await self.record_model(state, digest, state["messages"][-1])
+
+    def validate_retrieval_batch(self, state):
+        # Tool nodes run concurrently. Check the whole outstanding batch before
+        # dispatch so an unpriced/over-budget search cannot race another tool.
+        # This copy only checks affordability; each tool reserves durably under
+        # the lock before I/O. Receipted calls are already charged on replay.
+        budget = dict(state)
+        recorded = {entry["call_id"] for entry in state["trace"]}
+        calls = next((message.get("tool_calls", []) for message in reversed(state["messages"])
+                      if message["role"] == "assistant"), [])
+        for call in calls:
+            if call["id"] in recorded or call["function"]["name"] != "search_knowledge_base":
+                continue
+            arguments = TOOLS["search_knowledge_base"][0].model_validate(
+                json.loads(call["function"]["arguments"])).model_dump()
+            self.reserve_retrieval(budget, arguments)
 
     def reserve_retrieval(self, state, arguments):
         if not hasattr(self.retrieval, "vectors"):
